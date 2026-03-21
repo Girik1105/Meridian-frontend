@@ -17,11 +17,27 @@ export default function RegisterPage() {
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
 
+  const emailValid = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
+  const passwordLongEnough = password.length >= 8;
+  const passwordsMatch = password === confirmPassword;
+  const canSubmit =
+    username.trim() && emailValid && passwordLongEnough && passwordsMatch && !loading;
+
   async function handleSubmit(e: FormEvent) {
     e.preventDefault();
     setError("");
 
-    if (password !== confirmPassword) {
+    if (!emailValid) {
+      setError("Please enter a valid email address.");
+      return;
+    }
+
+    if (!passwordLongEnough) {
+      setError("Password must be at least 8 characters.");
+      return;
+    }
+
+    if (!passwordsMatch) {
       setError("Passwords do not match.");
       return;
     }
@@ -81,9 +97,14 @@ export default function RegisterPage() {
               required
               value={email}
               onChange={(e) => setEmail(e.target.value)}
-              className="w-full rounded-lg border border-silver px-4 py-2.5 text-ink font-body placeholder:text-slate/60 focus:outline-none focus:ring-2 focus:ring-secondary/40 focus:border-secondary transition-colors"
+              className={`w-full rounded-lg border px-4 py-2.5 text-ink font-body placeholder:text-slate/60 focus:outline-none focus:ring-2 focus:ring-secondary/40 transition-colors ${
+                email && !emailValid ? "border-red-400 focus:border-red-400" : "border-silver focus:border-secondary"
+              }`}
               placeholder="you@example.com"
             />
+            {email && !emailValid && (
+              <p className="mt-1 text-xs text-red-600">Please enter a valid email address.</p>
+            )}
           </div>
 
           <div>
@@ -110,6 +131,9 @@ export default function RegisterPage() {
                 {showPassword ? <EyeOff className="h-4.5 w-4.5" /> : <Eye className="h-4.5 w-4.5" />}
               </button>
             </div>
+            {password && !passwordLongEnough && (
+              <p className="mt-1 text-xs text-red-600">Password must be at least 8 characters.</p>
+            )}
           </div>
 
           <div>
@@ -136,12 +160,15 @@ export default function RegisterPage() {
                 {showConfirmPassword ? <EyeOff className="h-4.5 w-4.5" /> : <Eye className="h-4.5 w-4.5" />}
               </button>
             </div>
+            {confirmPassword && !passwordsMatch && (
+              <p className="mt-1 text-xs text-red-600">Passwords do not match.</p>
+            )}
           </div>
 
           <button
             type="submit"
-            disabled={loading}
-            className="w-full rounded-lg bg-secondary text-white font-heading font-medium py-2.5 hover:bg-secondary/90 focus:outline-none focus:ring-2 focus:ring-secondary/40 disabled:opacity-50 transition-colors"
+            disabled={!canSubmit}
+            className="w-full rounded-lg bg-secondary text-white font-heading font-medium py-2.5 hover:bg-secondary/90 focus:outline-none focus:ring-2 focus:ring-secondary/40 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
           >
             {loading ? "Creating account..." : "Create Account"}
           </button>

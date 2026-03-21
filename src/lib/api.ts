@@ -1,4 +1,4 @@
-const API_BASE = "http://localhost:8000/api";
+const API_BASE = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8000/api";
 
 export async function apiFetch(
   path: string,
@@ -46,10 +46,15 @@ export async function register(data: {
     body: JSON.stringify(data),
   });
   if (!res.ok) {
-    const err = await res.json();
-    throw new Error(
-      Object.values(err).flat().join(" ") || "Registration failed"
-    );
+    try {
+      const err = await res.json();
+      throw new Error(
+        Object.values(err).flat().join(" ") || "Registration failed"
+      );
+    } catch (e) {
+      if (e instanceof Error && e.message !== "Registration failed") throw e;
+      throw new Error("Registration failed");
+    }
   }
   return res.json();
 }

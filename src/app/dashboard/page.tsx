@@ -24,7 +24,10 @@ export default function DashboardPage() {
   if (loading) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-snow">
-        <div className="text-slate font-body">Loading...</div>
+        <div className="flex flex-col items-center gap-3">
+          <Compass className="h-8 w-8 text-secondary animate-spin" />
+          <span className="text-slate font-body text-sm">Loading your dashboard...</span>
+        </div>
       </div>
     );
   }
