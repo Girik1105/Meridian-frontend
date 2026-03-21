@@ -75,3 +75,70 @@ export async function getMe() {
   if (!res.ok) return null;
   return res.json();
 }
+
+// --- SSE Streaming ---
+
+export interface SSECallbacks {
+  onToken: (text: string) => void;
+  onDone: (data: Record<string, unknown>) => void;
+  onError: (error: string) => void;
+}
+
+export async function streamChat(
+  conversationId: string,
+  callbacks: SSECallbacks
+): Promise<void> {
+  const res = await apiFetch(`/chat/stream/${conversationId}/`, {
+    method: "GET",
+    headers: { Accept: "text/event-stream" },
+  });
+
+  if (!res.ok || !res.body) {
+    callbacks.onError(`Stream failed: ${res.status}`);
+    return;
+  }
+
+  const reader = res.body.getReader();
+  const decoder = new TextDecoder();
+  let buffer = "";
+
+  try {
+    while (true) {
+      const { done, value } = await reader.read();
+      if (done) break;
+
+      buffer += decoder.decode(value, { stream: true });
+      const lines = buffer.split("\n");
+      buffer = lines.pop() ?? "";
+
+      for (const line of lines) {
+        if (line === "" || line.startsWith(":")) continue;
+
+        if (line.startsWith("data: ")) {
+          try {
+            const event = JSON.parse(line.slice(6));
+            switch (event.type) {
+              case "token":
+                callbacks.onToken(event.data);
+                break;
+              case "done":
+                callbacks.onDone(event.data);
+                break;
+              case "error":
+                callbacks.onError(event.data);
+                break;
+            }
+          } catch {
+            // Malformed JSON line, skip
+          }
+        }
+      }
+    }
+  } catch (err) {
+    callbacks.onError(
+      err instanceof Error ? err.message : "Stream connection lost"
+    );
+  } finally {
+    reader.releaseLock();
+  }
+}
