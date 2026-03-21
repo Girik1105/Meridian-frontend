@@ -1,20 +1,25 @@
 "use client";
 
-import { useEffect } from "react";
+import { useEffect, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/hooks/useAuth";
 import { logout } from "@/lib/api";
 import { Compass, LogOut } from "lucide-react";
+import { OnboardingFlow } from "@/components/onboarding";
 
 export default function DashboardPage() {
   const router = useRouter();
-  const { user, loading } = useAuth();
+  const { user, loading, refetch } = useAuth();
 
   useEffect(() => {
     if (!loading && !user) {
       router.replace("/login");
     }
   }, [user, loading, router]);
+
+  const handleOnboardingComplete = useCallback(() => {
+    refetch();
+  }, [refetch]);
 
   async function handleLogout() {
     await logout();
@@ -34,9 +39,11 @@ export default function DashboardPage() {
 
   if (!user) return null;
 
+  const showOnboarding = !user.profile.onboarding_completed;
+
   return (
-    <div className="min-h-screen bg-snow">
-      <header className="bg-white border-b border-silver/50">
+    <div className="min-h-screen bg-snow flex flex-col">
+      <header className="bg-white border-b border-silver/50 flex-shrink-0">
         <div className="mx-auto max-w-6xl flex items-center justify-between px-4 py-3 md:px-8">
           <div className="flex items-center gap-2 font-heading font-bold text-lg text-primary">
             <Compass className="h-6 w-6 text-secondary" />
@@ -57,40 +64,47 @@ export default function DashboardPage() {
         </div>
       </header>
 
-      <main className="mx-auto max-w-6xl px-4 py-12 md:px-8">
-        <h1 className="font-heading text-2xl font-bold text-ink">
-          Welcome back, {user.username}
-        </h1>
-        <p className="mt-2 text-slate font-body">
-          Your AI career mentor is ready to help you explore new paths.
-        </p>
+      {showOnboarding ? (
+        <OnboardingFlow
+          username={user.username}
+          onComplete={handleOnboardingComplete}
+        />
+      ) : (
+        <main className="mx-auto max-w-6xl px-4 py-12 md:px-8">
+          <h1 className="font-heading text-2xl font-bold text-ink">
+            Welcome back, {user.username}
+          </h1>
+          <p className="mt-2 text-slate font-body">
+            Your AI career mentor is ready to help you explore new paths.
+          </p>
 
-        <div className="mt-8 grid gap-6 md:grid-cols-3">
-          <div className="bg-white rounded-xl border border-silver/50 p-6 shadow-sm">
-            <h2 className="font-heading font-medium text-ink">Profile</h2>
-            <p className="mt-1 text-sm text-slate font-body">
-              Onboarding {user.profile.onboarding_completed ? "complete" : "not started"}
-            </p>
-            <p className="mt-0.5 text-sm text-slate font-body">
-              Profile version: {user.profile.profile_version}
-            </p>
-          </div>
+          <div className="mt-8 grid gap-6 md:grid-cols-3">
+            <div className="bg-white rounded-xl border border-silver/50 p-6 shadow-sm">
+              <h2 className="font-heading font-medium text-ink">Profile</h2>
+              <p className="mt-1 text-sm text-slate font-body">
+                Onboarding complete
+              </p>
+              <p className="mt-0.5 text-sm text-slate font-body">
+                Profile version: {user.profile.profile_version}
+              </p>
+            </div>
 
-          <div className="bg-white rounded-xl border border-silver/50 p-6 shadow-sm">
-            <h2 className="font-heading font-medium text-ink">Career Paths</h2>
-            <p className="mt-1 text-sm text-slate font-body">
-              Complete onboarding to discover career paths tailored to you.
-            </p>
-          </div>
+            <div className="bg-white rounded-xl border border-silver/50 p-6 shadow-sm">
+              <h2 className="font-heading font-medium text-ink">Career Paths</h2>
+              <p className="mt-1 text-sm text-slate font-body">
+                Discover career paths tailored to your profile.
+              </p>
+            </div>
 
-          <div className="bg-white rounded-xl border border-silver/50 p-6 shadow-sm">
-            <h2 className="font-heading font-medium text-ink">Skill Tasters</h2>
-            <p className="mt-1 text-sm text-slate font-body">
-              Try 30-minute crash courses before committing to a new skill.
-            </p>
+            <div className="bg-white rounded-xl border border-silver/50 p-6 shadow-sm">
+              <h2 className="font-heading font-medium text-ink">Skill Tasters</h2>
+              <p className="mt-1 text-sm text-slate font-body">
+                Try 30-minute crash courses before committing to a new skill.
+              </p>
+            </div>
           </div>
-        </div>
-      </main>
+        </main>
+      )}
     </div>
   );
 }
