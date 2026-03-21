@@ -66,7 +66,7 @@ export function Navbar() {
             </a>
           ))}
           <a
-            href="#hero"
+            href="/login"
             className={`inline-flex items-center justify-center rounded-lg px-5 py-2.5 font-heading text-sm font-medium transition-all min-h-[44px] ${
               scrolled
                 ? "bg-secondary text-white hover:bg-secondary/90"
@@ -115,7 +115,7 @@ export function Navbar() {
               </a>
             ))}
             <a
-              href="#hero"
+              href="/login"
               onClick={() => setMobileOpen(false)}
               className="mt-2 inline-flex items-center justify-center rounded-lg bg-secondary px-5 py-3 font-heading text-base font-medium text-white hover:bg-secondary/90 transition-colors min-h-[44px]"
             >
