@@ -31,7 +31,6 @@ export default function OnboardingFlow({ username, onComplete }: OnboardingFlowP
     }
     if (doneData?.onboarding_completed === true && phase !== "complete") {
       setPhase("complete");
-      onComplete();
     }
   }
 
@@ -94,7 +93,13 @@ export default function OnboardingFlow({ username, onComplete }: OnboardingFlowP
 
   // Phase 3: Complete
   if (phase === "complete") {
-    return <CompletionScreen profileData={profileData} username={username} />;
+    return (
+      <CompletionScreen
+        profileData={profileData}
+        username={username}
+        onContinue={onComplete}
+      />
+    );
   }
 
   // Phase 2: Conversation

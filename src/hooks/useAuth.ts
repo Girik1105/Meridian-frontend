@@ -7,6 +7,7 @@ export interface UserProfile {
   id: string;
   profile_data: Record<string, unknown>;
   onboarding_completed: boolean;
+  journey_stage: string;
   profile_version: number;
 }
 
