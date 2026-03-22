@@ -1,6 +1,6 @@
 "use client";
 
-import { Clock, DollarSign, TrendingUp, Star, ChevronDown, ChevronUp } from "lucide-react";
+import { Clock, DollarSign, TrendingUp, Star, ChevronDown, ChevronUp, Check } from "lucide-react";
 import type { CareerPath } from "@/types/career";
 import ROIBreakdown from "./ROIBreakdown";
 
@@ -8,6 +8,7 @@ interface CareerPathCardProps {
   path: CareerPath;
   isExpanded: boolean;
   isTopPick: boolean;
+  isSelected?: boolean;
   onToggle: () => void;
   onSelect: () => void;
 }
@@ -16,6 +17,7 @@ export default function CareerPathCard({
   path,
   isExpanded,
   isTopPick,
+  isSelected,
   onToggle,
   onSelect,
 }: CareerPathCardProps) {
@@ -34,13 +36,21 @@ export default function CareerPathCard({
       }`}
       onClick={onToggle}
     >
-      {/* Top pick badge */}
-      {isTopPick && (
-        <div className="absolute top-4 right-4 inline-flex items-center gap-1 rounded-full bg-accent-light px-2.5 py-0.5 text-xs font-heading font-medium text-accent">
-          <Star className="h-3 w-3" />
-          Meridian&apos;s pick
-        </div>
-      )}
+      {/* Top pick / selected badges */}
+      <div className="absolute top-4 right-4 flex items-center gap-2">
+        {isSelected && (
+          <span className="inline-flex items-center gap-1 rounded-full bg-secondary-light px-2.5 py-0.5 text-xs font-heading font-medium text-secondary">
+            <Check className="h-3 w-3" />
+            Currently Selected
+          </span>
+        )}
+        {isTopPick && (
+          <span className="inline-flex items-center gap-1 rounded-full bg-accent-light px-2.5 py-0.5 text-xs font-heading font-medium text-accent">
+            <Star className="h-3 w-3" />
+            Meridian&apos;s pick
+          </span>
+        )}
+      </div>
 
       {/* Row 1: Title + match badge */}
       <div className="flex items-start gap-3 mb-2">
@@ -131,11 +141,16 @@ export default function CareerPathCard({
             <button
               onClick={(e) => {
                 e.stopPropagation();
-                onSelect();
+                if (!isSelected) onSelect();
               }}
-              className="mt-4 w-full py-3 rounded-xl bg-primary text-white font-heading font-semibold hover:bg-primary/90 transition-colors"
+              disabled={isSelected}
+              className={`mt-4 w-full py-3 rounded-xl font-heading font-semibold transition-colors ${
+                isSelected
+                  ? "bg-secondary-light text-secondary cursor-default"
+                  : "bg-primary text-white hover:bg-primary/90"
+              }`}
             >
-              Select this path
+              {isSelected ? "Selected" : "Select This Path"}
             </button>
           </div>
         </div>

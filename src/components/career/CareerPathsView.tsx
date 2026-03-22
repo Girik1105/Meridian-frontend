@@ -76,7 +76,7 @@ export default function CareerPathsView() {
   async function handleConfirmSelection() {
     if (!selectedPath) return;
     await selectCareerPath(selectedPath.id);
-    router.push("/dashboard");
+    router.push("/tasters");
   }
 
   // --- Phase: generating ---
@@ -153,6 +153,7 @@ export default function CareerPathsView() {
                 path={path}
                 isExpanded={expandedId === path.id}
                 isTopPick={path.id === topPickId}
+                isSelected={path.is_selected}
                 onToggle={() =>
                   setExpandedId((prev) => (prev === path.id ? null : path.id))
                 }

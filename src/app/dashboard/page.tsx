@@ -216,8 +216,11 @@ export default function DashboardPage() {
                   {s.action && !isLocked && (
                     <button
                       onClick={() => {
-                        if (s.step === 2 && isActive) {
+                        if (s.step === 2 && (isActive || isComplete)) {
                           router.push("/career-paths");
+                        }
+                        if (s.step === 3 && (isActive || isComplete)) {
+                          router.push("/tasters");
                         }
                       }}
                       className={`w-full flex items-center justify-center gap-2 py-2.5 rounded-xl font-heading font-medium text-sm transition-colors ${

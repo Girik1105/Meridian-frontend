@@ -215,3 +215,66 @@ export async function selectCareerPath(pathId: string) {
   if (!res.ok) throw new Error("Failed to select career path");
   return res.json();
 }
+
+// --- Skill Tasters ---
+
+export async function getTasters(careerPathId?: string) {
+  const query = careerPathId ? `?career_path_id=${careerPathId}` : "";
+  const res = await apiFetch(`/tasters/${query}`);
+  if (!res.ok) throw new Error("Failed to fetch tasters");
+  return res.json();
+}
+
+export async function getTasterDetail(id: string) {
+  const res = await apiFetch(`/tasters/${id}/`);
+  if (!res.ok) throw new Error("Failed to fetch taster detail");
+  return res.json();
+}
+
+export async function generateTaster(careerPathId: string, skillName: string) {
+  const res = await apiFetch("/tasters/generate/", {
+    method: "POST",
+    body: JSON.stringify({ career_path_id: careerPathId, skill_name: skillName }),
+  });
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({}));
+    throw new Error(err.detail || "Failed to generate taster");
+  }
+  return res.json();
+}
+
+export async function startTaster(id: string) {
+  const res = await apiFetch(`/tasters/${id}/start/`, { method: "POST" });
+  if (!res.ok) throw new Error("Failed to start taster");
+  return res.json();
+}
+
+export async function respondToModule(
+  tasterId: string,
+  moduleId: string,
+  userResponse: string,
+  timeSpentSeconds: number
+) {
+  const res = await apiFetch(`/tasters/${tasterId}/respond/`, {
+    method: "POST",
+    body: JSON.stringify({
+      module_id: moduleId,
+      user_response: userResponse,
+      time_spent_seconds: timeSpentSeconds,
+    }),
+  });
+  if (!res.ok) throw new Error("Failed to submit response");
+  return res.json();
+}
+
+export async function completeTaster(id: string) {
+  const res = await apiFetch(`/tasters/${id}/complete/`, { method: "POST" });
+  if (!res.ok) throw new Error("Failed to complete taster");
+  return res.json();
+}
+
+export async function getTasterAssessment(id: string) {
+  const res = await apiFetch(`/tasters/${id}/assessment/`);
+  if (!res.ok) throw new Error("Failed to fetch assessment");
+  return res.json();
+}
