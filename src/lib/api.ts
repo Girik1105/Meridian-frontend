@@ -194,11 +194,26 @@ export async function generateCareerPaths() {
   const res = await apiFetch("/career-paths/generate/", {
     method: "POST",
   });
+
+  if (res.status === 202) {
+    // Background generation — poll until paths appear
+    return pollCareerPathsReady();
+  }
+
   if (!res.ok) {
     const err = await res.json().catch(() => ({}));
     throw new Error(err.detail || "Failed to generate career paths");
   }
   return res.json();
+}
+
+async function pollCareerPathsReady(maxAttempts = 30): Promise<unknown> {
+  for (let i = 0; i < maxAttempts; i++) {
+    await new Promise((r) => setTimeout(r, 2000));
+    const paths = await getCareerPaths();
+    if (Array.isArray(paths) && paths.length > 0) return paths;
+  }
+  throw new Error("Career path generation timed out. Please try again.");
 }
 
 export async function getCareerPaths(sortBy?: string) {
@@ -236,11 +251,30 @@ export async function generateTaster(careerPathId: string, skillName: string) {
     method: "POST",
     body: JSON.stringify({ career_path_id: careerPathId, skill_name: skillName }),
   });
-  if (!res.ok) {
-    const err = await res.json().catch(() => ({}));
-    throw new Error(err.detail || "Failed to generate taster");
+
+  const data = await res.json();
+
+  if (res.status === 202 && data.status === "generating") {
+    // Background generation — poll until ready
+    return pollTasterReady(data.id);
   }
-  return res.json();
+
+  if (!res.ok) {
+    throw new Error(data.detail || "Failed to generate taster");
+  }
+  return data;
+}
+
+async function pollTasterReady(id: string, maxAttempts = 30): Promise<unknown> {
+  for (let i = 0; i < maxAttempts; i++) {
+    await new Promise((r) => setTimeout(r, 2000));
+    const taster = await getTasterDetail(id);
+    if (taster.status === "generation_failed") {
+      throw new Error("Taster generation failed. Please try again.");
+    }
+    if (taster.status !== "generating") return taster;
+  }
+  throw new Error("Taster generation timed out. Please try again.");
 }
 
 export async function startTaster(id: string) {
