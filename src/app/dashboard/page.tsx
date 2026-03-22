@@ -215,6 +215,11 @@ export default function DashboardPage() {
                   {/* Action button */}
                   {s.action && !isLocked && (
                     <button
+                      onClick={() => {
+                        if (s.step === 2 && isActive) {
+                          router.push("/career-paths");
+                        }
+                      }}
                       className={`w-full flex items-center justify-center gap-2 py-2.5 rounded-xl font-heading font-medium text-sm transition-colors ${
                         isComplete
                           ? "bg-cloud text-charcoal hover:bg-silver/30"
