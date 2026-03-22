@@ -1,9 +1,18 @@
+export interface ModuleResource {
+  title: string;
+  provider: string;
+  url: string;
+  type: "article" | "tutorial" | "video" | "exercise" | "documentation";
+  estimated_minutes: number;
+}
+
 export interface TasterModule {
   id: string;
   title: string;
   type: "read" | "exercise" | "reflect";
   content: string;
   estimated_minutes: number;
+  resources?: ModuleResource[];
 }
 
 export interface TasterContent {
@@ -38,6 +47,29 @@ export interface SkillTasterDetail extends SkillTaster {
   assessment: TasterAssessment | null;
 }
 
+export interface LearningResource {
+  title: string;
+  provider: string;
+  url: string;
+  cost: string;
+  estimated_hours: number;
+  type: "course" | "tutorial" | "certification" | "project" | "book" | "documentation";
+}
+
+export interface LearningPhase {
+  title: string;
+  weeks: string;
+  goal: string;
+  resources: LearningResource[];
+}
+
+export interface LearningPlan {
+  summary: string;
+  phases: LearningPhase[];
+  total_estimated_weeks: number;
+  total_estimated_cost: string;
+}
+
 export interface TasterAssessment {
   summary: string;
   strengths: string[];
@@ -45,4 +77,5 @@ export interface TasterAssessment {
   engagement_signals: Record<string, string | number>;
   next_steps: string[];
   disclaimer: string;
+  learning_plan?: LearningPlan;
 }

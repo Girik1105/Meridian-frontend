@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { type ReactElement } from "react";
-import { Check, BookOpen, Code, MessageSquare } from "lucide-react";
+import { Check, BookOpen, Code, MessageSquare, Globe, ExternalLink, Clock } from "lucide-react";
 import type { TasterModule, TasterResponse } from "@/types/taster";
 
 function renderMarkdownLite(text: string) {
@@ -46,6 +46,22 @@ interface ModuleContentProps {
   response?: TasterResponse;
   onSubmit: (userResponse: string) => Promise<void>;
   submitting: boolean;
+}
+
+function ResourceTypeIcon({ type }: { type: string }) {
+  const iconMap: Record<string, typeof BookOpen> = {
+    article: BookOpen,
+    tutorial: Code,
+    video: BookOpen,
+    exercise: Code,
+    documentation: BookOpen,
+  };
+  const Icon = iconMap[type] || BookOpen;
+  return (
+    <div className="w-5 h-5 rounded bg-secondary-light flex items-center justify-center flex-shrink-0">
+      <Icon className="h-3 w-3 text-secondary" />
+    </div>
+  );
 }
 
 const TYPE_CONFIG = {
@@ -99,6 +115,42 @@ export default function ModuleContent({
           {renderContent(module.content)}
         </div>
       </div>
+
+      {/* Resources */}
+      {module.resources && module.resources.length > 0 && (
+        <div className="mb-4">
+          <h3 className="font-heading text-xs font-semibold uppercase tracking-wider text-slate mb-2 flex items-center gap-1.5">
+            <Globe className="h-3.5 w-3.5" />
+            Related Resources
+          </h3>
+          <div className="flex gap-2 overflow-x-auto pb-1 -mx-1 px-1">
+            {module.resources.map((res, i) => (
+              <a
+                key={i}
+                href={res.url}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="flex-shrink-0 w-56 rounded-xl border border-silver/50 p-3 hover:border-secondary/40 hover:shadow-sm transition-all group bg-white"
+              >
+                <div className="flex items-center gap-2 mb-1.5">
+                  <ResourceTypeIcon type={res.type} />
+                  <span className="text-xs font-heading font-medium text-slate truncate">
+                    {res.provider}
+                  </span>
+                </div>
+                <p className="font-heading text-sm font-medium text-ink group-hover:text-secondary transition-colors line-clamp-2 leading-snug">
+                  {res.title}
+                </p>
+                <div className="flex items-center gap-1 mt-1.5 text-xs font-heading text-slate">
+                  <Clock className="h-3 w-3" />
+                  ~{res.estimated_minutes} min
+                  <ExternalLink className="h-3 w-3 ml-auto opacity-0 group-hover:opacity-100 transition-opacity text-secondary" />
+                </div>
+              </a>
+            ))}
+          </div>
+        </div>
+      )}
 
       {/* Completed state */}
       {completed && (
