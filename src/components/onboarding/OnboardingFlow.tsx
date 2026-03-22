@@ -1,8 +1,9 @@
 "use client";
 
-import { useState, useCallback } from "react";
+import { useState, useCallback, useEffect } from "react";
 import { Compass, ChevronRight, Clock } from "lucide-react";
 import { useChat } from "@/hooks/useChat";
+import { getConversations, getConversationDetail } from "@/lib/api";
 import ChatThread from "./ChatThread";
 import ChatInput from "./ChatInput";
 import ProfileProgress from "./ProfileProgress";
@@ -17,11 +18,63 @@ interface OnboardingFlowProps {
 type Phase = "welcome" | "conversation" | "complete";
 
 export default function OnboardingFlow({ username, onComplete }: OnboardingFlowProps) {
-  const { messages, isStreaming, doneData, sendMessage } = useChat();
+  const { messages, isStreaming, doneData, sendMessage, restoreConversation } = useChat();
   const [phase, setPhase] = useState<Phase>("welcome");
   const [profileData, setProfileData] = useState<Record<string, unknown>>({});
   const [currentWidget, setCurrentWidget] = useState<WidgetSpec | null>(null);
   const [widgetDismissed, setWidgetDismissed] = useState(false);
+  const [restoring, setRestoring] = useState(true);
+
+  // Restore existing onboarding conversation on mount
+  useEffect(() => {
+    let cancelled = false;
+    async function restore() {
+      try {
+        const conversations = await getConversations("onboarding");
+        if (cancelled) return;
+
+        // Find the most recent active onboarding conversation
+        const active = conversations.find(
+          (c: { is_active: boolean }) => c.is_active
+        );
+        if (!active) {
+          setRestoring(false);
+          return;
+        }
+
+        const detail = await getConversationDetail(active.id);
+        if (cancelled) return;
+
+        if (detail.messages && detail.messages.length > 0) {
+          // Convert backend messages to ChatMessage format (skip system messages)
+          const chatMessages = detail.messages
+            .filter((m: { role: string }) => m.role !== "system")
+            .map((m: { id: string; role: string; content: string }) => ({
+              id: m.id,
+              role: m.role as "user" | "assistant",
+              content: m.content,
+            }));
+
+          restoreConversation(active.id, chatMessages);
+          setPhase("conversation");
+
+          // Restore profile data from message metadata
+          for (const msg of [...detail.messages].reverse()) {
+            if (msg.metadata?.profile_update) {
+              setProfileData(msg.metadata.profile_update as Record<string, unknown>);
+              break;
+            }
+          }
+        }
+      } catch {
+        // If restoration fails, just show welcome screen
+      } finally {
+        if (!cancelled) setRestoring(false);
+      }
+    }
+    restore();
+    return () => { cancelled = true; };
+  }, [restoreConversation]);
 
   // Track previous doneData via useState (React-sanctioned derived state pattern)
   const [prevDoneData, setPrevDoneData] = useState(doneData);
@@ -56,6 +109,18 @@ export default function OnboardingFlow({ username, onComplete }: OnboardingFlowP
   const handleWidgetDismiss = useCallback(() => {
     setWidgetDismissed(true);
   }, []);
+
+  // Loading: restoring previous conversation
+  if (restoring) {
+    return (
+      <div className="flex-1 flex items-center justify-center">
+        <div className="flex flex-col items-center gap-3">
+          <Compass className="h-8 w-8 text-secondary animate-spin" />
+          <span className="text-slate font-body text-sm">Loading your conversation...</span>
+        </div>
+      </div>
+    );
+  }
 
   // Phase 1: Welcome
   if (phase === "welcome") {

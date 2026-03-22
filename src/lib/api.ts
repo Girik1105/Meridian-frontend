@@ -168,6 +168,21 @@ export async function getMe() {
   return res.json();
 }
 
+// --- Conversations ---
+
+export async function getConversations(type?: string) {
+  const query = type ? `?conversation_type=${type}` : "";
+  const res = await apiFetch(`/conversations/${query}`);
+  if (!res.ok) throw new Error("Failed to fetch conversations");
+  return res.json();
+}
+
+export async function getConversationDetail(id: string) {
+  const res = await apiFetch(`/conversations/${id}/`);
+  if (!res.ok) throw new Error("Failed to fetch conversation");
+  return res.json();
+}
+
 // --- SSE Streaming ---
 
 export interface SSECallbacks {

@@ -112,5 +112,14 @@ export function useChat() {
     setDoneData(null);
   }, []);
 
-  return { messages, isStreaming, conversationId, doneData, sendMessage, clearMessages };
+  const restoreConversation = useCallback(
+    (restoredConversationId: string, existingMessages: ChatMessage[]) => {
+      setConversationId(restoredConversationId);
+      setMessages(existingMessages);
+      setDoneData(null);
+    },
+    []
+  );
+
+  return { messages, isStreaming, conversationId, doneData, sendMessage, clearMessages, restoreConversation };
 }
