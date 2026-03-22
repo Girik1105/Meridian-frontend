@@ -95,11 +95,13 @@ export default function OnboardingFlow({ username, onComplete }: OnboardingFlowP
   // Phase 3: Complete
   if (phase === "complete") {
     return (
-      <CompletionScreen
-        profileData={profileData}
-        username={username}
-        onContinue={onComplete}
-      />
+      <div className="flex-1 overflow-hidden flex flex-col">
+        <CompletionScreen
+          profileData={profileData}
+          username={username}
+          onContinue={onComplete}
+        />
+      </div>
     );
   }
 

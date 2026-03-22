@@ -17,17 +17,20 @@ interface ChatThreadProps {
 
 export default function ChatThread({ messages, isStreaming }: ChatThreadProps) {
   const bottomRef = useRef<HTMLDivElement>(null);
-  const lastScrollRef = useRef(0);
 
-  const lastContent = messages[messages.length - 1]?.content;
-
+  // Scroll on new message (user sends or new assistant message appears)
   useEffect(() => {
-    const now = Date.now();
-    if (now - lastScrollRef.current > 200) {
+    bottomRef.current?.scrollIntoView({ behavior: "smooth" });
+  }, [messages.length]);
+
+  // Scroll periodically during streaming
+  useEffect(() => {
+    if (!isStreaming) return;
+    const interval = setInterval(() => {
       bottomRef.current?.scrollIntoView({ behavior: "smooth" });
-      lastScrollRef.current = now;
-    }
-  }, [lastContent, messages.length]);
+    }, 250);
+    return () => clearInterval(interval);
+  }, [isStreaming]);
 
   return (
     <div className="flex-1 overflow-y-auto min-h-0 px-3 md:px-6 py-3 space-y-3">

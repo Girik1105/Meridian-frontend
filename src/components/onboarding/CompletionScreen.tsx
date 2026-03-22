@@ -49,8 +49,9 @@ export default function CompletionScreen({ profileData, username, onContinue }: 
   const summaryItems = extractSummary(profileData);
 
   return (
-    <div className="flex-1 flex items-center justify-center p-6">
-      <div className="max-w-lg w-full animate-fade-in-up">
+    <div className="flex-1 overflow-y-auto">
+      <div className="flex items-center justify-center min-h-full p-6">
+        <div className="max-w-lg w-full animate-fade-in-up">
         {/* Success header */}
         <div className="text-center mb-8">
           <div className="mx-auto w-20 h-20 rounded-full bg-success-light flex items-center justify-center mb-6 relative">
@@ -116,6 +117,7 @@ export default function CompletionScreen({ profileData, username, onContinue }: 
           Explore Career Paths
           <ArrowRight className="h-5 w-5" />
         </button>
+        </div>
       </div>
     </div>
   );
