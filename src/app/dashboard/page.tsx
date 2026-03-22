@@ -2,6 +2,7 @@
 
 import { useEffect, useCallback } from "react";
 import { useRouter } from "next/navigation";
+import Link from "next/link";
 import { useAuth } from "@/hooks/useAuth";
 import { logout } from "@/lib/api";
 import {
@@ -13,6 +14,11 @@ import {
   Check,
   Lock,
   ArrowRight,
+  GraduationCap,
+  Sparkles,
+  Target,
+  Clock,
+  Calendar,
 } from "lucide-react";
 import { OnboardingFlow } from "@/components/onboarding";
 
@@ -52,6 +58,7 @@ export default function DashboardPage() {
 
   const onboardingDone = user.profile.onboarding_completed;
   const stage = user.profile.journey_stage;
+  const profileData = (user.profile.profile_data ?? {}) as Record<string, unknown>;
 
   const STAGE_ORDER = ["onboarding", "career_discovery", "skill_taster"];
   const stageIndex = STAGE_ORDER.indexOf(stage);
@@ -93,16 +100,47 @@ export default function DashboardPage() {
     },
   ];
 
+  // --- Profile snapshot chips ---
+  const bg = profileData.background as Record<string, unknown> | undefined;
+  const constraints = profileData.constraints as Record<string, unknown> | undefined;
+  const interests = profileData.interests as string[] | undefined;
+  const confidence = profileData.confidence_level as number | undefined;
+
+  const chips: { icon: typeof Clock; label: string; value: string }[] = [];
+  if (bg?.education_level) {
+    chips.push({ icon: GraduationCap, label: "Education", value: String(bg.education_level) });
+  }
+  if (interests && interests.length > 0) {
+    const display = interests.slice(0, 3).join(", ");
+    chips.push({ icon: Sparkles, label: "Interests", value: display });
+  }
+  if (typeof confidence === "number") {
+    chips.push({ icon: Target, label: "Confidence", value: `${confidence}/10` });
+  }
+  if (constraints?.timeline_months) {
+    chips.push({ icon: Clock, label: "Timeline", value: `${constraints.timeline_months} months` });
+  }
+  if (constraints?.hours_per_week) {
+    chips.push({ icon: Calendar, label: "Available", value: `${constraints.hours_per_week} hrs/week` });
+  }
+
   return (
     <div className="h-screen bg-snow flex flex-col overflow-hidden">
+      {/* Navbar */}
       <header className="bg-white border-b border-silver/50 flex-shrink-0">
         <div className="mx-auto max-w-6xl flex items-center justify-between px-4 py-3 md:px-8">
-          <div className="flex items-center gap-2 font-heading font-bold text-lg text-primary">
+          <Link
+            href="/"
+            className="flex items-center gap-2 font-heading font-bold text-lg text-primary hover:opacity-80 transition-opacity"
+          >
             <Compass className="h-6 w-6 text-secondary" />
             Meridian
-          </div>
-          <div className="flex items-center gap-4">
-            <span className="text-sm text-charcoal font-body">
+          </Link>
+          <div className="flex items-center gap-3 border-l border-silver/50 pl-4">
+            <div className="w-8 h-8 rounded-full bg-primary text-white flex items-center justify-center text-sm font-heading font-bold">
+              {user.username[0].toUpperCase()}
+            </div>
+            <span className="text-sm text-charcoal font-body hidden sm:inline">
               {user.username}
             </span>
             <button
@@ -110,7 +148,7 @@ export default function DashboardPage() {
               className="inline-flex items-center gap-1.5 text-sm text-slate hover:text-ink font-heading font-medium transition-colors"
             >
               <LogOut className="h-4 w-4" />
-              Sign out
+              <span className="hidden sm:inline">Sign out</span>
             </button>
           </div>
         </div>
@@ -122,123 +160,189 @@ export default function DashboardPage() {
           onComplete={handleOnboardingComplete}
         />
       ) : (
-        <main className="mx-auto max-w-6xl w-full px-4 py-12 md:px-8 flex-1 overflow-y-auto">
-          <div className="mb-10">
-            <h1 className="font-heading text-2xl font-bold text-ink">
-              Welcome back, {user.username}
-            </h1>
-            <p className="mt-2 text-slate font-body">
-              Your AI career mentor is ready to help you explore new paths.
-            </p>
-          </div>
+        <main className="flex-1 overflow-y-auto">
+          <div className="mx-auto max-w-6xl w-full px-4 md:px-8">
+            {/* Hero welcome banner */}
+            <div className="relative bg-gradient-to-r from-primary-light via-primary-light/60 to-snow rounded-2xl p-6 md:p-8 mt-6 mb-8 overflow-hidden">
+              <div className="relative z-10">
+                <h1 className="font-heading text-2xl md:text-3xl font-bold text-ink">
+                  Welcome back, {user.username}
+                </h1>
+                <p className="mt-2 text-slate font-body max-w-lg">
+                  Your AI career mentor is ready to help you explore new paths.
+                </p>
+              </div>
+              <Compass className="absolute right-6 top-1/2 -translate-y-1/2 h-24 w-24 text-primary/10 animate-float hidden md:block" />
+            </div>
 
-          <div className="grid gap-6 md:grid-cols-3">
-            {steps.map((s) => {
-              const Icon = s.icon;
-              const isLocked = s.status === "locked";
-              const isComplete = s.status === "complete";
-              const isActive = s.status === "active";
-
-              return (
-                <div
-                  key={s.step}
-                  className={`relative rounded-2xl border p-6 shadow-sm transition-all ${
-                    isLocked
-                      ? "bg-cloud/60 border-silver/40 opacity-60"
-                      : isComplete
-                        ? "bg-white border-success/30 shadow-success/5"
-                        : "bg-white border-secondary/30 shadow-secondary/5 hover:shadow-md hover:border-secondary/50"
-                  }`}
-                >
-                  {/* Step badge */}
-                  <div className="flex items-center justify-between mb-4">
-                    <span
-                      className={`inline-flex items-center gap-1.5 text-xs font-heading font-semibold uppercase tracking-wider ${
-                        isComplete
-                          ? "text-success"
-                          : isActive
-                            ? "text-secondary"
-                            : "text-slate"
+            {/* Progress track */}
+            <div className="flex items-center mb-6 px-2">
+              {steps.map((s, i) => {
+                const status = s.status;
+                return (
+                  <div key={s.step} className="flex items-center flex-1 last:flex-none">
+                    <div
+                      className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-heading font-bold shrink-0 ${
+                        status === "complete"
+                          ? "bg-success text-white"
+                          : status === "active"
+                            ? "bg-secondary text-white"
+                            : "bg-silver/40 text-slate"
                       }`}
                     >
-                      Step {s.step}
-                    </span>
-
-                    {isComplete && (
-                      <span className="inline-flex items-center gap-1 rounded-full bg-success-light px-2.5 py-0.5 text-xs font-heading font-medium text-success">
-                        <Check className="h-3 w-3" />
-                        Done
-                      </span>
-                    )}
-                    {isLocked && (
-                      <Lock className="h-4 w-4 text-slate" />
-                    )}
-                  </div>
-
-                  {/* Icon */}
-                  <div
-                    className={`w-12 h-12 rounded-xl flex items-center justify-center mb-4 ${
-                      isComplete
-                        ? "bg-success-light"
-                        : isActive
-                          ? "bg-secondary-light"
-                          : "bg-cloud"
-                    }`}
-                  >
-                    <Icon
-                      className={`h-6 w-6 ${
-                        isComplete
-                          ? "text-success"
-                          : isActive
-                            ? "text-secondary"
-                            : "text-slate"
-                      }`}
-                    />
-                  </div>
-
-                  {/* Content */}
-                  <h2
-                    className={`font-heading font-semibold text-lg mb-2 ${
-                      isLocked ? "text-slate" : "text-ink"
-                    }`}
-                  >
-                    {s.title}
-                  </h2>
-                  <p
-                    className={`text-sm font-body leading-relaxed mb-5 ${
-                      isLocked ? "text-slate/70" : "text-charcoal"
-                    }`}
-                  >
-                    {s.description}
-                  </p>
-
-                  {/* Action button */}
-                  {s.action && !isLocked && (
-                    <button
-                      onClick={() => {
-                        if (s.step === 2 && isActive) {
-                          router.push("/career-paths");
-                        }
-                      }}
-                      className={`w-full flex items-center justify-center gap-2 py-2.5 rounded-xl font-heading font-medium text-sm transition-colors ${
-                        isComplete
-                          ? "bg-cloud text-charcoal hover:bg-silver/30"
-                          : "bg-primary text-white hover:bg-primary/90 shadow-sm shadow-primary/20"
-                      }`}
-                    >
-                      {s.action}
-                      <ArrowRight className="h-4 w-4" />
-                    </button>
-                  )}
-
-                  {isLocked && (
-                    <div className="w-full py-2.5 rounded-xl bg-cloud text-center text-sm font-heading font-medium text-slate">
-                      Complete previous steps first
+                      {status === "complete" ? (
+                        <Check className="h-4 w-4" />
+                      ) : (
+                        s.step
+                      )}
                     </div>
-                  )}
+                    {i < steps.length - 1 && (
+                      <div
+                        className={`flex-1 mx-2 border-t-2 border-dashed ${
+                          stageIndex > i ? "border-success" : "border-silver/50"
+                        }`}
+                      />
+                    )}
+                  </div>
+                );
+              })}
+            </div>
+
+            {/* Step cards */}
+            <div className="grid gap-6 md:grid-cols-3 items-start">
+              {steps.map((s) => {
+                const Icon = s.icon;
+                const isLocked = s.status === "locked";
+                const isComplete = s.status === "complete";
+                const isActive = s.status === "active";
+
+                return (
+                  <div
+                    key={s.step}
+                    className={`relative rounded-2xl border p-7 md:p-8 min-h-[280px] flex flex-col transition-all duration-300 ${
+                      isLocked
+                        ? "bg-white/60 backdrop-blur-sm border-silver/30 opacity-70"
+                        : isComplete
+                          ? "bg-cloud/80 border-silver/30"
+                          : "bg-white border-secondary/40 shadow-lg shadow-secondary/10 ring-1 ring-secondary/10 md:scale-[1.02] z-10"
+                    }`}
+                  >
+                    {/* Step badge */}
+                    <div className="flex items-center justify-between mb-4">
+                      <span
+                        className={`inline-flex items-center gap-1.5 text-xs font-heading font-semibold uppercase tracking-wider ${
+                          isComplete
+                            ? "text-success"
+                            : isActive
+                              ? "text-secondary"
+                              : "text-slate"
+                        }`}
+                      >
+                        Step {s.step}
+                      </span>
+
+                      {isComplete && (
+                        <span className="inline-flex items-center gap-1 rounded-full bg-success-light px-2.5 py-0.5 text-xs font-heading font-medium text-success">
+                          <Check className="h-3 w-3" />
+                          Done
+                        </span>
+                      )}
+                      {isLocked && (
+                        <Lock className="h-5 w-5 text-slate/60" />
+                      )}
+                    </div>
+
+                    {/* Icon */}
+                    <div
+                      className={`w-12 h-12 rounded-xl flex items-center justify-center mb-4 ${
+                        isComplete
+                          ? "bg-success-light"
+                          : isActive
+                            ? "bg-secondary-light"
+                            : "bg-cloud"
+                      }`}
+                    >
+                      <Icon
+                        className={`h-6 w-6 ${
+                          isComplete
+                            ? "text-success"
+                            : isActive
+                              ? "text-secondary"
+                              : "text-slate"
+                        }`}
+                      />
+                    </div>
+
+                    {/* Content */}
+                    <h2
+                      className={`font-heading font-semibold text-lg mb-2 ${
+                        isLocked ? "text-slate" : "text-ink"
+                      }`}
+                    >
+                      {s.title}
+                    </h2>
+                    <p
+                      className={`text-sm font-body leading-relaxed mb-auto ${
+                        isLocked ? "text-slate/70" : isComplete ? "text-slate" : "text-charcoal"
+                      }`}
+                    >
+                      {s.description}
+                    </p>
+
+                    {/* Action button */}
+                    <div className="mt-5">
+                      {s.action && !isLocked && (
+                        <button
+                          onClick={() => {
+                            if (s.step === 2 && isActive) {
+                              router.push("/career-paths");
+                            }
+                          }}
+                          className={`w-full flex items-center justify-center gap-2 py-3 rounded-xl font-heading font-medium text-sm transition-all ${
+                            isComplete
+                              ? "bg-cloud text-charcoal hover:bg-silver/30"
+                              : "bg-primary text-white hover:bg-primary/90 shadow-md shadow-primary/25"
+                          }`}
+                        >
+                          {s.action}
+                          <ArrowRight className="h-4 w-4" />
+                        </button>
+                      )}
+
+                      {isLocked && (
+                        <div className="w-full py-3 rounded-xl bg-cloud/60 text-center text-sm font-heading font-medium text-slate/70">
+                          Complete previous steps first
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+
+            {/* Profile snapshot */}
+            {chips.length > 0 && (
+              <div className="mt-10 mb-8 bg-white rounded-2xl border border-silver/50 p-6">
+                <h3 className="font-heading text-xs text-slate uppercase tracking-wider font-semibold mb-4">
+                  Your Profile Snapshot
+                </h3>
+                <div className="flex flex-wrap gap-2.5">
+                  {chips.map((chip) => {
+                    const ChipIcon = chip.icon;
+                    return (
+                      <span
+                        key={chip.label}
+                        className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-cloud text-sm font-heading text-charcoal"
+                      >
+                        <ChipIcon className="h-3.5 w-3.5 text-slate" />
+                        <span className="text-slate font-normal">{chip.label}:</span>
+                        {chip.value}
+                      </span>
+                    );
+                  })}
                 </div>
-              );
-            })}
+              </div>
+            )}
           </div>
         </main>
       )}
