@@ -1,35 +1,73 @@
 const API_BASE = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8000/api";
 
+function getAccessToken(): string | null {
+  if (typeof window === "undefined") return null;
+  return localStorage.getItem("meridian_access");
+}
+
+function getRefreshToken(): string | null {
+  if (typeof window === "undefined") return null;
+  return localStorage.getItem("meridian_refresh");
+}
+
+export function storeTokens(access: string, refresh: string) {
+  localStorage.setItem("meridian_access", access);
+  localStorage.setItem("meridian_refresh", refresh);
+}
+
+export function clearTokens() {
+  localStorage.removeItem("meridian_access");
+  localStorage.removeItem("meridian_refresh");
+}
+
 export async function apiFetch(
   path: string,
   options: RequestInit = {}
 ): Promise<Response> {
+  const token = getAccessToken();
+  const headers: Record<string, string> = {
+    "Content-Type": "application/json",
+    ...(options.headers as Record<string, string>),
+  };
+  if (token) {
+    headers["Authorization"] = `Bearer ${token}`;
+  }
+
   const res = await fetch(`${API_BASE}${path}`, {
     credentials: "include",
-    headers: {
-      "Content-Type": "application/json",
-      ...options.headers,
-    },
     ...options,
+    headers,
   });
 
   // If access token expired, try refreshing
   if (res.status === 401) {
-    const refreshRes = await fetch(`${API_BASE}/auth/refresh/`, {
-      method: "POST",
-      credentials: "include",
-    });
-
-    if (refreshRes.ok) {
-      // Retry original request with new cookies
-      return fetch(`${API_BASE}${path}`, {
+    const refreshToken = getRefreshToken();
+    if (refreshToken) {
+      const refreshRes = await fetch(`${API_BASE}/auth/refresh/`, {
+        method: "POST",
         credentials: "include",
-        headers: {
-          "Content-Type": "application/json",
-          ...options.headers,
-        },
-        ...options,
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ refresh: refreshToken }),
       });
+
+      if (refreshRes.ok) {
+        const data = await refreshRes.json();
+        storeTokens(data.access, data.refresh);
+
+        // Retry original request with new token
+        const retryHeaders: Record<string, string> = {
+          "Content-Type": "application/json",
+          ...(options.headers as Record<string, string>),
+          Authorization: `Bearer ${data.access}`,
+        };
+        return fetch(`${API_BASE}${path}`, {
+          credentials: "include",
+          ...options,
+          headers: retryHeaders,
+        });
+      } else {
+        clearTokens();
+      }
     }
   }
 
@@ -56,7 +94,11 @@ export async function register(data: {
       throw new Error("Registration failed");
     }
   }
-  return res.json();
+  const result = await res.json();
+  if (result.access && result.refresh) {
+    storeTokens(result.access, result.refresh);
+  }
+  return result;
 }
 
 export async function login(data: { username: string; password: string }) {
@@ -68,7 +110,11 @@ export async function login(data: { username: string; password: string }) {
     const err = await res.json();
     throw new Error(err.detail || "Login failed");
   }
-  return res.json();
+  const result = await res.json();
+  if (result.access && result.refresh) {
+    storeTokens(result.access, result.refresh);
+  }
+  return result;
 }
 
 export async function forgotPassword(data: { email: string }) {
@@ -113,6 +159,7 @@ export async function resetPassword(data: {
 
 export async function logout() {
   await apiFetch("/auth/logout/", { method: "POST" });
+  clearTokens();
 }
 
 export async function getMe() {
