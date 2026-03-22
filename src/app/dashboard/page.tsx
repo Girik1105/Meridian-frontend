@@ -20,8 +20,76 @@ import {
   Clock,
   Calendar,
   ChevronDown,
+  Brain,
 } from "lucide-react";
 import { OnboardingFlow } from "@/components/onboarding";
+
+function MentorContextBanner({
+  profileData,
+  stage,
+}: {
+  profileData: Record<string, unknown>;
+  stage: string;
+}) {
+  const interests = profileData.interests as string[] | undefined;
+  const constraints = profileData.constraints as Record<string, unknown> | undefined;
+  const preferences = profileData.career_preferences as Record<string, unknown> | undefined;
+  const leaningToward = preferences?.leaning_toward as string | undefined;
+
+  let contextMessage = "";
+  let actionHint = "";
+  let actionHref = "";
+
+  if (stage === "career_discovery") {
+    const interestSnippet = interests && interests.length > 0
+      ? ` You mentioned interest in ${interests.slice(0, 2).join(" and ")}.`
+      : "";
+    const timeSnippet = constraints?.timeline_months
+      ? `With your ${constraints.timeline_months}-month timeline,`
+      : "Based on your profile,";
+
+    contextMessage = `${timeSnippet} let's find career paths that fit your situation.${interestSnippet}`;
+    actionHint = "Explore your personalized career paths";
+    actionHref = "/career-paths";
+  } else if (stage === "skill_taster") {
+    const leanSnippet = leaningToward
+      ? `You chose to explore ${leaningToward}.`
+      : "You've selected a career path.";
+
+    contextMessage = `${leanSnippet} Time to test-drive the key skills with a 30-minute hands-on taster.`;
+    actionHint = "Try your first skill taster";
+    actionHref = "/tasters";
+  } else {
+    return null;
+  }
+
+  if (!contextMessage) return null;
+
+  return (
+    <div className="bg-secondary-light/50 border border-secondary/20 rounded-xl px-5 py-3.5 mb-6 flex items-start gap-3 animate-fade-in-up" style={{ animationDelay: "100ms" }}>
+      <Brain className="h-5 w-5 text-secondary mt-0.5 flex-shrink-0" />
+      <div className="flex-1 min-w-0">
+        <div className="flex items-center gap-2 mb-0.5">
+          <span className="font-heading text-xs font-semibold text-secondary uppercase tracking-wider">
+            Your Mentor
+          </span>
+        </div>
+        <p className="font-body text-sm text-charcoal leading-relaxed">
+          {contextMessage}
+        </p>
+        {actionHint && (
+          <a
+            href={actionHref}
+            className="mt-2 inline-flex items-center gap-1 text-xs font-heading font-semibold text-secondary hover:text-secondary/80 transition-colors"
+          >
+            {actionHint}
+            <ArrowRight className="h-3 w-3" />
+          </a>
+        )}
+      </div>
+    </div>
+  );
+}
 
 export default function DashboardPage() {
   const router = useRouter();
@@ -210,6 +278,12 @@ export default function DashboardPage() {
               </div>
               <Compass className="absolute right-6 top-1/2 -translate-y-1/2 h-24 w-24 text-primary/10 animate-float hidden md:block" />
             </div>
+
+            {/* Mentor context banner */}
+            <MentorContextBanner
+              profileData={profileData}
+              stage={stage}
+            />
 
             {/* Progress track */}
             <div className="flex items-center mb-6 px-2">

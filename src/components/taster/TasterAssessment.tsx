@@ -15,6 +15,7 @@ import {
   TrendingUp,
   TrendingDown,
   Activity,
+  DollarSign,
 } from "lucide-react";
 import type {
   TasterAssessment as TasterAssessmentType,
@@ -442,10 +443,106 @@ export default function TasterAssessment({
           </div>
         )}
 
+        {/* Learning Plan */}
+        {assessment.learning_plan && assessment.learning_plan.phases.length > 0 && (
+          <div
+            className="mb-6 animate-fade-in-up"
+            style={{ animationDelay: "850ms" }}
+          >
+            <h2 className="font-heading text-sm font-semibold uppercase tracking-wider text-slate mb-1">
+              Your Learning Roadmap
+            </h2>
+            <p className="font-body text-xs text-charcoal mb-4">
+              {assessment.learning_plan.summary}
+            </p>
+
+            <div className="space-y-4">
+              {assessment.learning_plan.phases.map((phase, phaseIdx) => (
+                <div
+                  key={phaseIdx}
+                  className="bg-white rounded-2xl border border-silver/50 shadow-sm overflow-hidden"
+                >
+                  {/* Phase header */}
+                  <div className="flex items-center gap-3 px-5 py-3 border-b border-silver/50 bg-cloud/50">
+                    <div className={`w-7 h-7 rounded-full flex items-center justify-center text-xs font-heading font-bold text-white ${
+                      phaseIdx === 0 ? "bg-secondary" : phaseIdx === 1 ? "bg-accent" : "bg-primary"
+                    }`}>
+                      {phaseIdx + 1}
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <h3 className="font-heading text-sm font-semibold text-ink">
+                        {phase.title}
+                      </h3>
+                      <p className="text-xs font-heading text-slate">
+                        Weeks {phase.weeks} &middot; {phase.goal}
+                      </p>
+                    </div>
+                  </div>
+
+                  {/* Resources */}
+                  <div className="p-4 space-y-2.5">
+                    {phase.resources.map((resource, resIdx) => (
+                      <a
+                        key={resIdx}
+                        href={resource.url}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="flex items-center gap-3 p-3 rounded-xl hover:bg-cloud transition-colors group"
+                      >
+                        <div className="w-8 h-8 rounded-lg bg-secondary-light flex items-center justify-center flex-shrink-0">
+                          <BookOpen className="h-4 w-4 text-secondary" />
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <p className="font-heading text-sm font-medium text-ink group-hover:text-secondary transition-colors truncate">
+                            {resource.title}
+                          </p>
+                          <div className="flex items-center gap-2 mt-0.5">
+                            <span className="text-xs font-heading text-slate">
+                              {resource.provider}
+                            </span>
+                            <span className="text-xs font-heading text-slate">&middot;</span>
+                            <span className="text-xs font-heading text-slate">
+                              ~{resource.estimated_hours}h
+                            </span>
+                          </div>
+                        </div>
+                        <span className={`px-2 py-0.5 rounded-full text-xs font-heading font-medium flex-shrink-0 ${
+                          resource.cost === "Free"
+                            ? "bg-success-light text-success"
+                            : "bg-cloud text-slate"
+                        }`}>
+                          {resource.cost}
+                        </span>
+                      </a>
+                    ))}
+                  </div>
+                </div>
+              ))}
+            </div>
+
+            {/* Summary stats */}
+            <div className="flex items-center gap-4 mt-3 px-1">
+              <span className="text-xs font-heading text-slate flex items-center gap-1">
+                <Clock className="h-3 w-3" />
+                ~{assessment.learning_plan.total_estimated_weeks} weeks total
+              </span>
+              <span className="text-xs font-heading text-slate flex items-center gap-1">
+                <DollarSign className="h-3 w-3" />
+                {assessment.learning_plan.total_estimated_cost}
+              </span>
+            </div>
+
+            {/* Ethical footer */}
+            <p className="text-xs font-body text-slate italic mt-3">
+              Resources curated by AI based on your profile, budget, and learning style. Verify availability and current pricing before enrolling.
+            </p>
+          </div>
+        )}
+
         {/* Disclaimer */}
         <div
           className="bg-cloud rounded-xl p-4 mb-8 animate-fade-in-up"
-          style={{ animationDelay: "900ms" }}
+          style={{ animationDelay: "1000ms" }}
         >
           <p className="font-body text-xs text-slate leading-relaxed">
             {assessment.disclaimer ||
@@ -456,7 +553,7 @@ export default function TasterAssessment({
         {/* Actions */}
         <div
           className="flex gap-3 animate-fade-in-up"
-          style={{ animationDelay: "1050ms" }}
+          style={{ animationDelay: "1150ms" }}
         >
           <button
             onClick={() => router.push("/dashboard")}
