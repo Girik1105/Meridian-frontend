@@ -71,6 +71,46 @@ export async function login(data: { username: string; password: string }) {
   return res.json();
 }
 
+export async function forgotPassword(data: { email: string }) {
+  const res = await apiFetch("/auth/forgot-password/", {
+    method: "POST",
+    body: JSON.stringify(data),
+  });
+  if (!res.ok) {
+    const text = await res.text();
+    try {
+      const err = JSON.parse(text);
+      throw new Error(err.detail || "Request failed");
+    } catch (e) {
+      if (e instanceof SyntaxError) throw new Error("Request failed. Please try again.");
+      throw e;
+    }
+  }
+  return res.json();
+}
+
+export async function resetPassword(data: {
+  uid: string;
+  token: string;
+  new_password: string;
+}) {
+  const res = await apiFetch("/auth/reset-password/", {
+    method: "POST",
+    body: JSON.stringify(data),
+  });
+  if (!res.ok) {
+    const text = await res.text();
+    try {
+      const err = JSON.parse(text);
+      throw new Error(err.detail || "Password reset failed");
+    } catch (e) {
+      if (e instanceof SyntaxError) throw new Error("Password reset failed. Please try again.");
+      throw e;
+    }
+  }
+  return res.json();
+}
+
 export async function logout() {
   await apiFetch("/auth/logout/", { method: "POST" });
 }
