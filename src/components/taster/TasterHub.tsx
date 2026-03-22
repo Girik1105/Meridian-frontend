@@ -6,11 +6,13 @@ import {
   FlaskConical,
   Compass,
   ArrowRight,
+  ChevronRight,
   Clock,
   Check,
   Play,
   Sparkles,
   Map,
+  Loader2,
 } from "lucide-react";
 import type { CareerPath } from "@/types/career";
 import type { SkillTaster } from "@/types/taster";
@@ -119,6 +121,38 @@ export default function TasterHub() {
     },
   };
 
+  // Full-screen generating overlay
+  if (generatingSkill) {
+    return (
+      <div className="flex-1 flex items-center justify-center animate-fade-in-up">
+        <div className="text-center max-w-sm">
+          <div className="inline-flex items-center justify-center w-16 h-16 rounded-2xl bg-secondary-light mb-5">
+            <Loader2 className="h-8 w-8 text-secondary animate-spin" />
+          </div>
+          <h2 className="font-heading text-xl font-bold text-ink mb-2">
+            Generating Your Taster
+          </h2>
+          <p className="font-body text-sm text-charcoal mb-4">
+            Our AI mentor is crafting a personalized 30-minute experience for{" "}
+            <strong className="font-heading font-semibold">{generatingSkill}</strong>.
+          </p>
+          {/* Animated progress bar */}
+          <div className="w-full h-2 bg-cloud rounded-full overflow-hidden mb-3">
+            <div className="h-full bg-secondary rounded-full animate-pulse-glow" style={{ width: "80%", transition: "width 10s ease-out" }} />
+          </div>
+          <p className="font-body text-xs text-slate">
+            This usually takes 15&ndash;30 seconds...
+          </p>
+          {error && (
+            <div className="mt-4 bg-accent-light rounded-xl p-3 text-sm font-body text-accent">
+              {error}
+            </div>
+          )}
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="flex-1 overflow-y-auto">
       <div className="mx-auto max-w-3xl px-4 py-8 md:px-8">
@@ -159,75 +193,155 @@ export default function TasterHub() {
           </div>
         )}
 
-        {/* Skills grid */}
-        <div className="grid gap-4 sm:grid-cols-2">
+        {/* Skills roadmap */}
+        <div className="flex flex-col">
           {skills.map((skill, i) => {
             const taster = tastersBySkill[skill];
             const isGenerating = generatingSkill === skill;
+            const isLast = i === skills.length - 1;
 
+            const isCompleted = taster?.status === "completed";
+            const isInProgress = taster?.status === "in_progress";
+
+            // Step circle style
+            const circleClass = isCompleted
+              ? "bg-success text-white"
+              : isInProgress
+                ? "bg-secondary text-white"
+                : "bg-cloud text-slate";
+
+            // Connector line style
+            const connectorClass = isCompleted
+              ? "bg-success"
+              : "border-l-2 border-dashed border-silver bg-transparent";
+
+            // Action text & icon
+            let actionText = "Generate Taster";
+            let ActionIcon = Sparkles;
             if (taster) {
-              const config = STATUS_CONFIG[taster.status];
-              return (
-                <button
-                  key={skill}
-                  onClick={() => router.push(`/tasters/${taster.id}`)}
-                  className="bg-white rounded-2xl border border-silver/50 p-5 shadow-sm text-left hover:shadow-md hover:border-secondary/40 transition-all animate-fade-in-up"
-                  style={{ animationDelay: `${(i + 2) * 150}ms` }}
-                >
-                  <div className="flex items-start justify-between mb-3">
-                    <div className="w-10 h-10 rounded-xl bg-secondary-light flex items-center justify-center">
-                      <FlaskConical className="h-5 w-5 text-secondary" />
-                    </div>
-                    <span
-                      className={`inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-heading font-medium ${config.color} ${config.bg}`}
-                    >
-                      {taster.status === "completed" && (
-                        <Check className="h-3 w-3" />
-                      )}
-                      {taster.status === "in_progress" && (
-                        <Play className="h-3 w-3" />
-                      )}
-                      {config.label}
-                    </span>
-                  </div>
-                  <h3 className="font-heading text-base font-semibold text-ink mb-1">
-                    {skill}
-                  </h3>
-                  <div className="flex items-center gap-1.5 text-xs font-heading text-slate">
-                    <Clock className="h-3.5 w-3.5" />
-                    ~{taster.taster_content.estimated_minutes} min
-                  </div>
-                </button>
-              );
+              if (isCompleted) {
+                actionText = "View Assessment";
+                ActionIcon = ArrowRight;
+              } else if (isInProgress) {
+                actionText = "Continue";
+                ActionIcon = ArrowRight;
+              } else {
+                actionText = "Start Taster";
+                ActionIcon = ArrowRight;
+              }
             }
 
+            const handleClick = () => {
+              if (taster) {
+                router.push(`/tasters/${taster.id}`);
+              } else {
+                handleGenerate(skill);
+              }
+            };
+
+            const config = taster ? STATUS_CONFIG[taster.status] : null;
+
             return (
-              <button
+              <div
                 key={skill}
-                onClick={() => handleGenerate(skill)}
-                disabled={isGenerating || !!generatingSkill}
-                className="bg-white rounded-2xl border border-dashed border-silver p-5 text-left hover:border-secondary/40 hover:shadow-sm transition-all disabled:opacity-60 disabled:cursor-not-allowed animate-fade-in-up"
+                className="flex animate-fade-in-up"
                 style={{ animationDelay: `${(i + 2) * 150}ms` }}
               >
-                <div className="flex items-start justify-between mb-3">
-                  <div className="w-10 h-10 rounded-xl bg-cloud flex items-center justify-center">
-                    <Sparkles className="h-5 w-5 text-slate" />
+                {/* Left: step circle + connector */}
+                <div className="flex flex-col items-center mr-4">
+                  <div
+                    className={`w-9 h-9 rounded-full flex items-center justify-center flex-shrink-0 font-heading font-bold text-sm ${circleClass}`}
+                  >
+                    {isCompleted ? (
+                      <Check className="h-4 w-4" />
+                    ) : isInProgress ? (
+                      <Play className="h-4 w-4" />
+                    ) : (
+                      <span>{i + 1}</span>
+                    )}
                   </div>
+                  {!isLast && (
+                    <div
+                      className={`w-0.5 flex-1 my-1 min-h-[24px] ${isCompleted ? "bg-success" : ""}`}
+                      style={
+                        !isCompleted
+                          ? {
+                              backgroundImage:
+                                "linear-gradient(to bottom, #D1D5DB 50%, transparent 50%)",
+                              backgroundSize: "2px 8px",
+                              backgroundRepeat: "repeat-y",
+                              width: "2px",
+                            }
+                          : undefined
+                      }
+                    />
+                  )}
                 </div>
-                <h3 className="font-heading text-base font-semibold text-ink mb-1">
-                  {skill}
-                </h3>
-                {isGenerating ? (
-                  <div className="flex items-center gap-2 text-xs font-heading text-secondary">
-                    <div className="h-3.5 w-3.5 border-2 border-secondary/30 border-t-secondary rounded-full animate-spin" />
-                    Generating taster...
+
+                {/* Right: skill card */}
+                <button
+                  onClick={handleClick}
+                  disabled={!taster && (isGenerating || !!generatingSkill)}
+                  className={`flex-1 mb-3 bg-white rounded-2xl border p-4 text-left flex items-center gap-4 transition-all group ${
+                    taster
+                      ? "border-silver/50 shadow-sm hover:shadow-md hover:border-secondary/40"
+                      : "border-dashed border-silver hover:border-secondary/40 hover:shadow-sm"
+                  } disabled:opacity-60 disabled:cursor-not-allowed`}
+                >
+                  {/* Icon */}
+                  <div
+                    className={`w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0 ${
+                      taster ? "bg-secondary-light" : "bg-cloud"
+                    }`}
+                  >
+                    {taster ? (
+                      <FlaskConical className="h-5 w-5 text-secondary" />
+                    ) : (
+                      <Sparkles className="h-5 w-5 text-slate" />
+                    )}
                   </div>
-                ) : (
-                  <span className="text-xs font-heading font-medium text-secondary">
-                    Generate Taster
-                  </span>
-                )}
-              </button>
+
+                  {/* Content */}
+                  <div className="flex-1 min-w-0">
+                    <h3 className="font-heading text-base font-semibold text-ink truncate">
+                      {skill}
+                    </h3>
+                    <div className="flex items-center gap-3 mt-0.5">
+                      {config && (
+                        <span
+                          className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-heading font-medium ${config.color} ${config.bg}`}
+                        >
+                          {isCompleted && <Check className="h-3 w-3" />}
+                          {isInProgress && <Play className="h-3 w-3" />}
+                          {config.label}
+                        </span>
+                      )}
+                      {taster && (
+                        <span className="flex items-center gap-1 text-xs font-heading text-slate">
+                          <Clock className="h-3.5 w-3.5" />~
+                          {taster.taster_content.estimated_minutes} min
+                        </span>
+                      )}
+                    </div>
+                  </div>
+
+                  {/* Action */}
+                  <div className="flex items-center gap-1 flex-shrink-0">
+                    {isGenerating ? (
+                      <div className="flex items-center gap-2 text-xs font-heading text-secondary">
+                        <div className="h-3.5 w-3.5 border-2 border-secondary/30 border-t-secondary rounded-full animate-spin" />
+                        Generating...
+                      </div>
+                    ) : (
+                      <span className="flex items-center gap-1 text-xs font-heading font-medium text-secondary group-hover:text-secondary/80 transition-colors">
+                        {actionText}
+                        <ActionIcon className="h-3.5 w-3.5" />
+                      </span>
+                    )}
+                    <ChevronRight className="h-4 w-4 text-silver group-hover:text-secondary/60 transition-colors ml-1" />
+                  </div>
+                </button>
+              </div>
             );
           })}
         </div>

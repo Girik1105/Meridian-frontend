@@ -1,5 +1,6 @@
 "use client";
 
+import { useMemo } from "react";
 import { useRouter } from "next/navigation";
 import {
   Check,
@@ -7,19 +8,110 @@ import {
   ArrowRight,
   ArrowLeft,
   BarChart3,
+  Clock,
+  BookOpen,
+  Code,
+  MessageSquare,
+  TrendingUp,
+  TrendingDown,
+  Activity,
 } from "lucide-react";
-import type { TasterAssessment as TasterAssessmentType } from "@/types/taster";
+import type {
+  TasterAssessment as TasterAssessmentType,
+  TasterModule,
+  TasterResponse,
+} from "@/types/taster";
 
 interface TasterAssessmentProps {
   assessment: TasterAssessmentType;
   skillName: string;
+  modules?: TasterModule[];
+  responses?: TasterResponse[];
+}
+
+const TYPE_ICONS: Record<string, typeof BookOpen> = {
+  read: BookOpen,
+  exercise: Code,
+  reflect: MessageSquare,
+};
+
+const TYPE_COLORS: Record<string, { bar: string; bg: string; text: string }> = {
+  read: { bar: "bg-secondary", bg: "bg-secondary-light", text: "text-secondary" },
+  exercise: { bar: "bg-accent", bg: "bg-accent-light", text: "text-accent" },
+  reflect: { bar: "bg-primary", bg: "bg-primary-light", text: "text-primary" },
+};
+
+function formatTime(seconds: number): string {
+  if (seconds < 60) return `${seconds}s`;
+  const mins = Math.floor(seconds / 60);
+  const secs = seconds % 60;
+  return secs > 0 ? `${mins}m ${secs}s` : `${mins}m`;
 }
 
 export default function TasterAssessment({
   assessment,
   skillName,
+  modules,
+  responses,
 }: TasterAssessmentProps) {
   const router = useRouter();
+
+  // Build per-module engagement data
+  const engagementData = useMemo(() => {
+    if (!modules || !responses || responses.length === 0) return null;
+
+    const responseMap = new Map(responses.map((r) => [r.module_id, r]));
+    const items = modules.map((mod) => {
+      const resp = responseMap.get(mod.id);
+      return {
+        title: mod.title,
+        type: mod.type,
+        timeSpent: resp?.time_spent_seconds ?? 0,
+        estimatedMinutes: mod.estimated_minutes,
+        hasResponse: !!resp,
+      };
+    });
+
+    const totalTime = items.reduce((sum, it) => sum + it.timeSpent, 0);
+    const maxTime = Math.max(...items.map((it) => it.timeSpent), 1);
+    const avgTime = items.length > 0 ? totalTime / items.length : 0;
+
+    // Time by module type
+    const byType: Record<string, { total: number; count: number }> = {};
+    items.forEach((it) => {
+      if (!byType[it.type]) byType[it.type] = { total: 0, count: 0 };
+      byType[it.type].total += it.timeSpent;
+      byType[it.type].count += 1;
+    });
+
+    return { items, totalTime, maxTime, avgTime, byType };
+  }, [modules, responses]);
+
+  // Derive overall engagement level from signals or time data
+  const overallEngagement = assessment.engagement_signals?.overall_engagement as
+    | string
+    | undefined;
+
+  const engagementColor =
+    overallEngagement === "high"
+      ? "text-success"
+      : overallEngagement === "moderate"
+        ? "text-secondary"
+        : "text-accent";
+
+  const engagementBg =
+    overallEngagement === "high"
+      ? "bg-success-light"
+      : overallEngagement === "moderate"
+        ? "bg-secondary-light"
+        : "bg-accent-light";
+
+  const engagementPercent =
+    overallEngagement === "high"
+      ? 85
+      : overallEngagement === "moderate"
+        ? 55
+        : 25;
 
   return (
     <div className="min-h-screen bg-snow">
@@ -93,8 +185,215 @@ export default function TasterAssessment({
           </div>
         )}
 
-        {/* Engagement signals */}
-        {assessment.engagement_signals &&
+        {/* Engagement Analysis */}
+        <div
+          className="mb-6 animate-fade-in-up"
+          style={{ animationDelay: "600ms" }}
+        >
+          <h2 className="font-heading text-sm font-semibold uppercase tracking-wider text-slate mb-3">
+            Engagement Analysis
+          </h2>
+
+          <div className="bg-white rounded-2xl border border-silver/50 shadow-sm overflow-hidden">
+            {/* Top stats row */}
+            <div className="grid grid-cols-3 divide-x divide-silver/50 border-b border-silver/50">
+              <div className="p-4 text-center">
+                <div className="flex items-center justify-center gap-1.5 mb-1">
+                  <Clock className="h-3.5 w-3.5 text-slate" />
+                  <span className="text-xs font-heading text-slate">Total Time</span>
+                </div>
+                <p className="font-heading text-lg font-bold text-ink">
+                  {engagementData ? formatTime(engagementData.totalTime) : "--"}
+                </p>
+              </div>
+              <div className="p-4 text-center">
+                <div className="flex items-center justify-center gap-1.5 mb-1">
+                  <Activity className="h-3.5 w-3.5 text-slate" />
+                  <span className="text-xs font-heading text-slate">Avg / Module</span>
+                </div>
+                <p className="font-heading text-lg font-bold text-ink">
+                  {engagementData
+                    ? formatTime(Math.round(engagementData.avgTime))
+                    : "--"}
+                </p>
+              </div>
+              <div className="p-4 text-center">
+                <div className="flex items-center justify-center gap-1.5 mb-1">
+                  <TrendingUp className="h-3.5 w-3.5 text-slate" />
+                  <span className="text-xs font-heading text-slate">Engagement</span>
+                </div>
+                <p className={`font-heading text-lg font-bold capitalize ${engagementColor}`}>
+                  {overallEngagement || "--"}
+                </p>
+              </div>
+            </div>
+
+            {/* Time per module bar chart */}
+            {engagementData && (
+              <div className="p-5">
+                <h3 className="font-heading text-xs font-semibold uppercase tracking-wider text-slate mb-4">
+                  Time Spent per Module
+                </h3>
+                <div className="space-y-3">
+                  {engagementData.items.map((item, i) => {
+                    const barPercent = Math.max(
+                      (item.timeSpent / engagementData.maxTime) * 100,
+                      2
+                    );
+                    const colors = TYPE_COLORS[item.type] || TYPE_COLORS.read;
+                    const Icon = TYPE_ICONS[item.type] || BookOpen;
+
+                    return (
+                      <div key={i}>
+                        <div className="flex items-center justify-between mb-1">
+                          <div className="flex items-center gap-2 min-w-0">
+                            <div
+                              className={`w-5 h-5 rounded flex items-center justify-center shrink-0 ${colors.bg}`}
+                            >
+                              <Icon className={`h-3 w-3 ${colors.text}`} />
+                            </div>
+                            <span className="text-xs font-heading font-medium text-charcoal truncate">
+                              {item.title}
+                            </span>
+                          </div>
+                          <span className="text-xs font-mono font-semibold text-slate ml-2 shrink-0">
+                            {formatTime(item.timeSpent)}
+                          </span>
+                        </div>
+                        <div className="h-2.5 bg-cloud rounded-full overflow-hidden">
+                          <div
+                            className={`h-full rounded-full transition-all duration-1000 ease-out ${colors.bar}`}
+                            style={{ width: `${barPercent}%` }}
+                          />
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+            )}
+
+            {/* Engagement by type breakdown */}
+            {engagementData && Object.keys(engagementData.byType).length > 1 && (
+              <div className="px-5 pb-5 border-t border-silver/50 pt-4">
+                <h3 className="font-heading text-xs font-semibold uppercase tracking-wider text-slate mb-3">
+                  Time by Activity Type
+                </h3>
+                <div className="flex gap-3">
+                  {Object.entries(engagementData.byType).map(([type, data]) => {
+                    const colors = TYPE_COLORS[type] || TYPE_COLORS.read;
+                    const Icon = TYPE_ICONS[type] || BookOpen;
+                    const typeTotal = Object.values(engagementData.byType).reduce(
+                      (s, d) => s + d.total,
+                      0
+                    );
+                    const percent =
+                      typeTotal > 0
+                        ? Math.round((data.total / typeTotal) * 100)
+                        : 0;
+
+                    return (
+                      <div
+                        key={type}
+                        className={`flex-1 rounded-xl p-3 ${colors.bg}`}
+                      >
+                        <div className="flex items-center gap-1.5 mb-1.5">
+                          <Icon className={`h-3.5 w-3.5 ${colors.text}`} />
+                          <span
+                            className={`text-xs font-heading font-semibold capitalize ${colors.text}`}
+                          >
+                            {type}
+                          </span>
+                        </div>
+                        <p className="font-heading text-lg font-bold text-ink">
+                          {percent}%
+                        </p>
+                        <p className="text-xs font-heading text-slate">
+                          {formatTime(data.total)}
+                        </p>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+            )}
+
+            {/* Overall engagement gauge */}
+            {overallEngagement && (
+              <div className="px-5 pb-5 border-t border-silver/50 pt-4">
+                <div className="flex items-center justify-between mb-2">
+                  <span className="text-xs font-heading font-semibold uppercase tracking-wider text-slate">
+                    Overall Engagement Level
+                  </span>
+                  <span
+                    className={`text-xs font-heading font-bold capitalize ${engagementColor}`}
+                  >
+                    {overallEngagement}
+                  </span>
+                </div>
+                <div className="h-3 bg-cloud rounded-full overflow-hidden">
+                  <div
+                    className={`h-full rounded-full transition-all duration-1000 ease-out ${
+                      overallEngagement === "high"
+                        ? "bg-success"
+                        : overallEngagement === "moderate"
+                          ? "bg-secondary"
+                          : "bg-accent"
+                    }`}
+                    style={{ width: `${engagementPercent}%` }}
+                  />
+                </div>
+                <div className="flex justify-between mt-1">
+                  <span className="text-[10px] font-heading text-slate">Low</span>
+                  <span className="text-[10px] font-heading text-slate">Moderate</span>
+                  <span className="text-[10px] font-heading text-slate">High</span>
+                </div>
+              </div>
+            )}
+
+            {/* Highlight signals from Claude that aren't covered above */}
+            {assessment.engagement_signals && (() => {
+              const extraSignals = Object.entries(assessment.engagement_signals).filter(
+                ([key]) => key !== "overall_engagement" && key !== "most_time_spent" && key !== "least_time_spent"
+              );
+              if (extraSignals.length === 0) return null;
+              return (
+                <div className="px-5 pb-5 border-t border-silver/50 pt-4">
+                  <div className="flex flex-wrap gap-2">
+                    {extraSignals.map(([key, val]) => {
+                      const isPositive =
+                        key.includes("strength") ||
+                        key.includes("high") ||
+                        key.includes("engaged");
+                      return (
+                        <span
+                          key={key}
+                          className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-heading font-medium ${
+                            isPositive
+                              ? "bg-success-light text-success"
+                              : "bg-primary-light text-primary"
+                          }`}
+                        >
+                          {isPositive ? (
+                            <TrendingUp className="h-3 w-3" />
+                          ) : (
+                            <TrendingDown className="h-3 w-3" />
+                          )}
+                          {key.replace(/_/g, " ")}:{" "}
+                          <span className="font-mono font-semibold">{val}</span>
+                        </span>
+                      );
+                    })}
+                  </div>
+                </div>
+              );
+            })()}
+          </div>
+        </div>
+
+        {/* No module data fallback — show original pills */}
+        {!engagementData &&
+          assessment.engagement_signals &&
           Object.keys(assessment.engagement_signals).length > 0 && (
             <div
               className="mb-6 animate-fade-in-up"

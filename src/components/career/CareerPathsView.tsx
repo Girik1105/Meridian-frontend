@@ -8,7 +8,7 @@ import GeneratingPaths from "./GeneratingPaths";
 import SortBar from "./SortBar";
 import CareerPathCard from "./CareerPathCard";
 import SelectConfirmation from "./SelectConfirmation";
-import { RefreshCw } from "lucide-react";
+import { RefreshCw, LayoutList, LayoutGrid } from "lucide-react";
 
 type Phase = "generating" | "browsing" | "confirming";
 
@@ -20,6 +20,7 @@ export default function CareerPathsView() {
   const [selectedPath, setSelectedPath] = useState<CareerPath | null>(null);
   const [expandedId, setExpandedId] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [layout, setLayout] = useState<"list" | "grid">("list");
 
   useEffect(() => {
     let cancelled = false;
@@ -135,14 +136,35 @@ export default function CareerPathsView() {
           </h1>
           <p className="font-body text-sm text-slate">
             Based on your profile, here are personalized career paths to explore.
+            You can change your selection anytime &mdash; just come back here and pick a different path.
           </p>
         </div>
 
-        <div className="mb-6">
+        <div className="mb-6 flex items-center justify-between gap-4">
           <SortBar activeSort={sortBy} onSort={setSortBy} />
+          <div className="flex items-center gap-1 shrink-0">
+            <button
+              onClick={() => setLayout("list")}
+              className={`p-2 rounded-lg transition-colors ${
+                layout === "list" ? "bg-primary text-white" : "text-slate hover:bg-cloud"
+              }`}
+              title="List view"
+            >
+              <LayoutList className="h-4 w-4" />
+            </button>
+            <button
+              onClick={() => setLayout("grid")}
+              className={`p-2 rounded-lg transition-colors ${
+                layout === "grid" ? "bg-primary text-white" : "text-slate hover:bg-cloud"
+              }`}
+              title="Grid view"
+            >
+              <LayoutGrid className="h-4 w-4" />
+            </button>
+          </div>
         </div>
 
-        <div className="space-y-4 pb-8">
+        <div className={layout === "grid" ? "grid gap-4 md:grid-cols-2 pb-8" : "space-y-4 pb-8"}>
           {sortedPaths.map((path, i) => (
             <div
               key={path.id}
@@ -154,6 +176,7 @@ export default function CareerPathsView() {
                 isExpanded={expandedId === path.id}
                 isTopPick={path.id === topPickId}
                 isSelected={path.is_selected}
+                compact={layout === "grid"}
                 onToggle={() =>
                   setExpandedId((prev) => (prev === path.id ? null : path.id))
                 }

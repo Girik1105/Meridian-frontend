@@ -82,6 +82,8 @@ export default function TasterDetailPage() {
       <TasterAssessment
         assessment={taster.assessment}
         skillName={taster.skill_name}
+        modules={taster.taster_content.modules}
+        responses={taster.responses}
       />
     );
   }

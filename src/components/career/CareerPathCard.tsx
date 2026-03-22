@@ -9,6 +9,7 @@ interface CareerPathCardProps {
   isExpanded: boolean;
   isTopPick: boolean;
   isSelected?: boolean;
+  compact?: boolean;
   onToggle: () => void;
   onSelect: () => void;
 }
@@ -18,43 +19,47 @@ export default function CareerPathCard({
   isExpanded,
   isTopPick,
   isSelected,
+  compact,
   onToggle,
   onSelect,
 }: CareerPathCardProps) {
   const matchPercent = Math.round(path.relevance_score * 100);
   const salaryMin = Math.round(path.salary_range.min / 1000);
   const salaryMax = Math.round(path.salary_range.max / 1000);
-  const visibleSkills = isExpanded ? path.required_skills : path.required_skills.slice(0, 4);
-  const hiddenCount = path.required_skills.length - 4;
+  const skillLimit = compact ? 3 : 4;
+  const visibleSkills = isExpanded ? path.required_skills : path.required_skills.slice(0, skillLimit);
+  const hiddenCount = path.required_skills.length - skillLimit;
 
   return (
     <div
-      className={`relative rounded-2xl border p-5 shadow-sm transition-all duration-300 cursor-pointer ${
+      className={`rounded-2xl border p-5 shadow-sm transition-all duration-300 cursor-pointer ${
         isTopPick
           ? "bg-white border-accent/40 ring-1 ring-accent/10"
           : "bg-white border-silver/50 hover:border-secondary/40 hover:shadow-md"
       }`}
       onClick={onToggle}
     >
-      {/* Top pick / selected badges */}
-      <div className="absolute top-4 right-4 flex items-center gap-2">
-        {isSelected && (
-          <span className="inline-flex items-center gap-1 rounded-full bg-secondary-light px-2.5 py-0.5 text-xs font-heading font-medium text-secondary">
-            <Check className="h-3 w-3" />
-            Currently Selected
-          </span>
-        )}
-        {isTopPick && (
-          <span className="inline-flex items-center gap-1 rounded-full bg-accent-light px-2.5 py-0.5 text-xs font-heading font-medium text-accent">
-            <Star className="h-3 w-3" />
-            Meridian&apos;s pick
-          </span>
-        )}
-      </div>
+      {/* Row 0: Status badges */}
+      {(isSelected || isTopPick) && (
+        <div className="flex items-center gap-2 mb-3">
+          {isSelected && (
+            <span className="inline-flex items-center gap-1 rounded-full bg-secondary-light px-2.5 py-0.5 text-xs font-heading font-medium text-secondary">
+              <Check className="h-3 w-3" />
+              Currently Selected
+            </span>
+          )}
+          {isTopPick && (
+            <span className="inline-flex items-center gap-1 rounded-full bg-accent-light px-2.5 py-0.5 text-xs font-heading font-medium text-accent">
+              <Star className="h-3 w-3" />
+              Meridian&apos;s pick
+            </span>
+          )}
+        </div>
+      )}
 
       {/* Row 1: Title + match badge */}
       <div className="flex items-start gap-3 mb-2">
-        <h3 className="font-heading text-lg font-bold text-ink flex-1 pr-2">
+        <h3 className="font-heading text-lg font-bold text-ink flex-1">
           {path.title}
         </h3>
         <span className="shrink-0 inline-flex items-center rounded-full bg-secondary-light px-2.5 py-0.5 text-xs font-heading font-semibold text-secondary">
@@ -64,7 +69,7 @@ export default function CareerPathCard({
 
       {/* Row 2: Description */}
       <p className={`font-body text-sm text-charcoal leading-relaxed mb-3 ${
-        isExpanded ? "" : "line-clamp-2"
+        isExpanded ? "" : compact ? "line-clamp-1" : "line-clamp-2"
       }`}>
         {path.description}
       </p>

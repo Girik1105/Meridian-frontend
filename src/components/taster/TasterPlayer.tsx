@@ -13,6 +13,7 @@ import {
   Clock,
   Menu,
   X,
+  Loader2,
 } from "lucide-react";
 import type { SkillTasterDetail, TasterResponse } from "@/types/taster";
 import { startTaster, respondToModule, completeTaster } from "@/lib/api";
@@ -107,6 +108,38 @@ export default function TasterPlayer({ taster, onComplete }: TasterPlayerProps) 
   }
 
   const progressPercent = Math.round((completedCount / modules.length) * 100);
+
+  if (completing) {
+    return (
+      <div className="h-screen bg-snow flex items-center justify-center animate-fade-in-up">
+        <div className="text-center max-w-sm">
+          <div className="inline-flex items-center justify-center w-16 h-16 rounded-2xl bg-secondary-light mb-5">
+            <Loader2 className="h-8 w-8 text-secondary animate-spin" />
+          </div>
+          <h2 className="font-heading text-xl font-bold text-ink mb-2">
+            Generating Your Reflection
+          </h2>
+          <p className="font-body text-sm text-charcoal mb-4">
+            Our AI mentor is reviewing your responses and crafting a personalized
+            assessment for{" "}
+            <strong className="font-heading font-semibold">
+              {taster.taster_content.skill_name}
+            </strong>
+            .
+          </p>
+          <div className="w-full h-2 bg-cloud rounded-full overflow-hidden mb-3">
+            <div
+              className="h-full bg-secondary rounded-full animate-pulse-glow"
+              style={{ width: "80%", transition: "width 10s ease-out" }}
+            />
+          </div>
+          <p className="font-body text-xs text-slate">
+            This usually takes 15&ndash;30 seconds...
+          </p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="h-screen bg-snow flex flex-col overflow-hidden">

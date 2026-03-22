@@ -53,6 +53,10 @@ export default function SelectConfirmation({ path, onConfirm, onBack }: SelectCo
           </ul>
         </div>
 
+        <p className="font-body text-xs text-slate mb-4">
+          Don&apos;t worry &mdash; you can always come back and switch to a different path later.
+        </p>
+
         <div className="space-y-3">
           <button
             onClick={handleConfirm}
