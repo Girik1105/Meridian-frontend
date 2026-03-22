@@ -21,6 +21,8 @@ import {
   Calendar,
   ChevronDown,
   Brain,
+  Info,
+  BarChart3,
 } from "lucide-react";
 import { OnboardingFlow } from "@/components/onboarding";
 
@@ -106,6 +108,7 @@ export default function DashboardPage() {
   }, [refetch]);
 
   const [profileOpen, setProfileOpen] = useState(false);
+  const [aiDisclosureOpen, setAiDisclosureOpen] = useState(false);
   const profileRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -243,6 +246,20 @@ export default function DashboardPage() {
                   </p>
                 </div>
                 <button
+                  onClick={() => setAiDisclosureOpen((o) => !o)}
+                  className="w-full flex items-center gap-2 px-4 py-2.5 text-sm font-heading font-medium text-slate hover:text-ink hover:bg-cloud transition-colors border-b border-silver/50"
+                >
+                  <Info className="h-4 w-4" />
+                  About Meridian&apos;s AI
+                </button>
+                {aiDisclosureOpen && (
+                  <div className="px-4 py-3 border-b border-silver/50 bg-cloud/50">
+                    <p className="text-xs font-body text-slate leading-relaxed">
+                      Meridian uses Claude by Anthropic to provide personalized career guidance. All suggestions are AI-generated and should be validated with career professionals, local career centers, and trusted mentors. Your conversation data is used only to provide personalized guidance within your session.
+                    </p>
+                  </div>
+                )}
+                <button
                   onClick={() => {
                     setProfileOpen(false);
                     handleLogout();
@@ -273,7 +290,9 @@ export default function DashboardPage() {
                   Welcome back, {user.username}
                 </h1>
                 <p className="mt-2 text-slate font-body max-w-lg">
-                  Your AI career mentor is ready to help you explore new paths.
+                  {stage === "skill_taster"
+                    ? "You're making great progress! Keep exploring skills to find your best fit."
+                    : "Your AI career mentor is ready to help you explore new paths."}
                 </p>
               </div>
               <Compass className="absolute right-6 top-1/2 -translate-y-1/2 h-24 w-24 text-primary/10 animate-float hidden md:block" />
@@ -320,7 +339,7 @@ export default function DashboardPage() {
 
             {/* Step cards */}
             <div className="grid gap-6 md:grid-cols-3 items-start">
-              {steps.map((s) => {
+              {steps.map((s, i) => {
                 const Icon = s.icon;
                 const isLocked = s.status === "locked";
                 const isComplete = s.status === "complete";
@@ -329,13 +348,14 @@ export default function DashboardPage() {
                 return (
                   <div
                     key={s.step}
-                    className={`relative rounded-2xl border p-7 md:p-8 min-h-[280px] flex flex-col transition-all duration-300 ${
+                    className={`relative rounded-2xl border p-7 md:p-8 min-h-[280px] flex flex-col transition-all duration-300 animate-fade-in-up ${
                       isLocked
                         ? "bg-white/60 backdrop-blur-sm border-silver/30 opacity-70"
                         : isComplete
                           ? "bg-cloud/80 border-silver/30"
                           : "bg-white border-secondary/40 shadow-lg shadow-secondary/10 ring-1 ring-secondary/10 md:scale-[1.02] z-10"
                     }`}
+                    style={{ animationDelay: `${i * 150}ms` }}
                   >
                     {/* Step badge */}
                     <div className="flex items-center justify-between mb-4">
@@ -456,6 +476,58 @@ export default function DashboardPage() {
                 </div>
               </div>
             )}
+
+            {/* Progress Analytics — Coming Soon */}
+            <div className="mt-6 mb-8 bg-white/80 backdrop-blur-sm rounded-2xl border border-dashed border-silver p-5">
+              <div className="flex items-center gap-2 mb-4">
+                <BarChart3 className="h-5 w-5 text-slate" />
+                <h3 className="font-heading text-sm font-semibold text-ink">
+                  Your Progress Analytics
+                </h3>
+                <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-accent-light text-accent text-xs font-heading font-medium ml-auto">
+                  <Sparkles className="h-3 w-3" />
+                  Coming Soon
+                </span>
+              </div>
+
+              <div className="opacity-60">
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 mb-4">
+                  <div className="bg-cloud rounded-xl p-4 text-center">
+                    <p className="font-mono text-2xl font-bold text-secondary">2</p>
+                    <p className="text-xs font-heading text-slate mt-1">Skills Explored</p>
+                    <p className="text-xs font-body text-slate">of 5 recommended</p>
+                  </div>
+                  <div className="bg-cloud rounded-xl p-4 text-center">
+                    <p className="font-mono text-2xl font-bold text-secondary">1.5h</p>
+                    <p className="text-xs font-heading text-slate mt-1">Learning Hours</p>
+                    <p className="text-xs font-body text-slate">this week</p>
+                  </div>
+                  <div className="bg-cloud rounded-xl p-4 text-center">
+                    <div className="w-12 h-12 rounded-full border-4 border-secondary border-r-cloud border-b-cloud mx-auto" />
+                    <p className="text-xs font-heading text-slate mt-2">Career Readiness</p>
+                    <p className="font-mono text-sm font-bold text-secondary">35%</p>
+                  </div>
+                </div>
+
+                <div className="space-y-2">
+                  {[
+                    { text: "Completed SQL taster", time: "Yesterday" },
+                    { text: "Selected Data Analyst path", time: "2 days ago" },
+                    { text: "Finished onboarding", time: "2 days ago" },
+                  ].map((item, i) => (
+                    <div key={i} className="flex items-center gap-3 text-xs">
+                      <div className="w-2 h-2 rounded-full bg-secondary shrink-0" />
+                      <span className="font-heading text-charcoal">{item.text}</span>
+                      <span className="font-body text-slate ml-auto">{item.time}</span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              <p className="text-xs font-body text-slate italic mt-3">
+                Track your learning journey with personalized analytics and milestone tracking.
+              </p>
+            </div>
           </div>
         </main>
       )}

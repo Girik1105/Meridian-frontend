@@ -13,6 +13,7 @@ import {
   Sparkles,
   Map,
   Loader2,
+  Brain,
 } from "lucide-react";
 import type { CareerPath } from "@/types/career";
 import type { SkillTaster } from "@/types/taster";
@@ -185,6 +186,35 @@ export default function TasterHub() {
           >
             Change path
           </button>
+        </div>
+
+        {/* Adaptive Learning Engine — Coming Soon */}
+        <div
+          className="bg-white rounded-xl border-l-4 border-secondary p-4 mb-6 animate-fade-in-up"
+          style={{ animationDelay: "250ms" }}
+        >
+          <div className="flex items-center gap-2 mb-1.5">
+            <Brain className="h-4 w-4 text-secondary" />
+            <h3 className="font-heading text-sm font-semibold text-ink">
+              Adaptive Learning Engine
+            </h3>
+            <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-accent-light text-accent text-xs font-heading font-medium ml-auto">
+              <Sparkles className="h-3 w-3" />
+              Coming Soon
+            </span>
+          </div>
+          <p className="font-body text-xs text-charcoal mb-3">
+            AI adjusts difficulty and content in real-time based on your engagement patterns
+          </p>
+          <div className="opacity-60">
+            <div className="relative h-2 bg-cloud rounded-full overflow-hidden mb-1">
+              <div className="absolute left-[45%] top-1/2 -translate-y-1/2 w-3 h-3 rounded-full bg-secondary border-2 border-white shadow-sm" />
+            </div>
+            <p className="text-center text-[10px] font-heading text-slate">Your pace: Moderate</p>
+            <p className="text-xs font-body text-slate italic mt-1">
+              Based on your profile: +exercises, -reading, intermediate difficulty
+            </p>
+          </div>
         </div>
 
         {error && (

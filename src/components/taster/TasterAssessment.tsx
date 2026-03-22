@@ -16,6 +16,8 @@ import {
   TrendingDown,
   Activity,
   DollarSign,
+  Users,
+  Sparkles,
 } from "lucide-react";
 import type {
   TasterAssessment as TasterAssessmentType,
@@ -539,10 +541,59 @@ export default function TasterAssessment({
           </div>
         )}
 
+        {/* Community Mentor Matching — Coming Soon */}
+        <div
+          className="mb-6 bg-white/80 backdrop-blur-sm rounded-2xl border border-dashed border-silver p-5 animate-fade-in-up"
+          style={{ animationDelay: "950ms" }}
+        >
+          <div className="flex items-center gap-2 mb-3">
+            <Users className="h-5 w-5 text-secondary" />
+            <h2 className="font-heading text-sm font-semibold text-ink">
+              Connect with a Real Mentor
+            </h2>
+            <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-accent-light text-accent text-xs font-heading font-medium ml-auto">
+              <Sparkles className="h-3 w-3" />
+              Coming Soon
+            </span>
+          </div>
+
+          <div className="opacity-60">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-3">
+              {[
+                { initials: "SK", name: "Sarah Kim", role: "Senior Data Analyst", company: "Deloitte", color: "bg-secondary" },
+                { initials: "MR", name: "Marcus Rivera", role: "Analytics Lead", company: "HoneyBee Health", color: "bg-primary" },
+              ].map((mentor) => (
+                <div key={mentor.initials} className="bg-cloud rounded-xl p-3">
+                  <div className="flex items-center gap-3 mb-2">
+                    <div className={`w-10 h-10 rounded-full ${mentor.color} text-white flex items-center justify-center text-sm font-heading font-bold`}>
+                      {mentor.initials}
+                    </div>
+                    <div>
+                      <p className="font-heading text-sm font-semibold text-ink">{mentor.name}</p>
+                      <p className="text-xs font-body text-slate">{mentor.role} &middot; {mentor.company}</p>
+                    </div>
+                  </div>
+                  <p className="text-xs font-heading text-slate mb-2">5 years experience</p>
+                  <button
+                    disabled
+                    className="w-full py-2 rounded-lg bg-silver/30 text-slate font-heading text-xs font-medium cursor-not-allowed"
+                  >
+                    Request Introduction
+                  </button>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          <p className="text-xs font-body text-slate italic mt-3">
+            AI-matched mentors based on your career path, location, and skill interests
+          </p>
+        </div>
+
         {/* Disclaimer */}
         <div
           className="bg-cloud rounded-xl p-4 mb-8 animate-fade-in-up"
-          style={{ animationDelay: "1000ms" }}
+          style={{ animationDelay: "1100ms" }}
         >
           <p className="font-body text-xs text-slate leading-relaxed">
             {assessment.disclaimer ||
@@ -553,7 +604,7 @@ export default function TasterAssessment({
         {/* Actions */}
         <div
           className="flex gap-3 animate-fade-in-up"
-          style={{ animationDelay: "1150ms" }}
+          style={{ animationDelay: "1250ms" }}
         >
           <button
             onClick={() => router.push("/dashboard")}

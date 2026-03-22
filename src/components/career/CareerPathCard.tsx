@@ -1,6 +1,6 @@
 "use client";
 
-import { Clock, DollarSign, TrendingUp, Star, ChevronDown, ChevronUp, Check } from "lucide-react";
+import { Clock, DollarSign, TrendingUp, Star, ChevronDown, ChevronUp, Check, Sparkles } from "lucide-react";
 import type { CareerPath } from "@/types/career";
 import ROIBreakdown from "./ROIBreakdown";
 
@@ -135,6 +135,50 @@ export default function CareerPathCard({
 
             {/* ROI Breakdown */}
             <ROIBreakdown roi={path.roi_data} timelineMonths={path.estimated_timeline_months} />
+
+            {/* Live Job Market Pulse — Coming Soon */}
+            <div className="mt-4 bg-white/80 backdrop-blur-sm rounded-2xl border border-dashed border-silver p-5 opacity-70">
+              <div className="flex items-center gap-2 mb-3">
+                <TrendingUp className="h-4 w-4 text-secondary" />
+                <h4 className="font-heading text-xs font-semibold uppercase tracking-wider text-ink">
+                  Local Job Market Pulse — Phoenix Metro
+                </h4>
+                <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-accent-light text-accent text-xs font-heading font-medium ml-auto">
+                  <Sparkles className="h-3 w-3" />
+                  Coming Soon
+                </span>
+              </div>
+
+              <div className="flex items-end gap-4 mb-3">
+                <div>
+                  <p className="font-mono text-2xl font-bold text-secondary">142</p>
+                  <p className="text-xs font-heading text-slate">open positions</p>
+                </div>
+                <span className="text-xs font-heading text-success mb-1">↑ 18% vs last quarter</span>
+              </div>
+
+              <div className="flex items-center gap-2 mb-3">
+                <div className="w-6 h-6 rounded-full bg-primary text-white flex items-center justify-center text-[10px] font-heading font-bold">AM</div>
+                <div className="w-6 h-6 rounded-full bg-secondary text-white flex items-center justify-center text-[10px] font-heading font-bold">GS</div>
+                <div className="w-6 h-6 rounded-full bg-accent text-white flex items-center justify-center text-[10px] font-heading font-bold">DT</div>
+                <span className="text-xs font-heading text-slate ml-1">Hiring now at 3+ companies</span>
+              </div>
+
+              <div className="flex items-end gap-1 h-16 mb-1">
+                {[8, 12, 16, 10].map((h, i) => (
+                  <div key={i} className="flex-1 flex flex-col items-center gap-0.5">
+                    <div className="w-full bg-secondary/40 rounded-sm" style={{ height: `${h * 4}px` }} />
+                    <span className="text-[9px] font-heading text-slate">
+                      {["Jan", "Feb", "Mar", "Apr"][i]}
+                    </span>
+                  </div>
+                ))}
+              </div>
+
+              <p className="text-xs font-body text-slate italic mt-2">
+                Data sourced from Indeed, LinkedIn, and BLS via AI web search
+              </p>
+            </div>
 
             {/* Confidence disclaimer */}
             <div className="mt-4 bg-cloud rounded-lg p-3 text-xs text-slate font-body leading-relaxed">

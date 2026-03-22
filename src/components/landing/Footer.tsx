@@ -21,6 +21,15 @@ export function Footer() {
 
         <hr className="my-10 border-white/10" />
 
+        <div className="flex items-center justify-center gap-6 text-xs font-heading text-white/40 mb-6">
+          <span>Built with</span>
+          <span className="font-semibold text-white/60">Claude by Anthropic</span>
+          <span className="text-white/20">&middot;</span>
+          <span className="font-semibold text-white/60">Next.js</span>
+          <span className="text-white/20">&middot;</span>
+          <span className="font-semibold text-white/60">Tailwind CSS</span>
+        </div>
+
         <div className="flex flex-col items-center gap-4 sm:flex-row sm:justify-between">
           <div className="flex items-center gap-2 font-heading text-sm font-medium text-white/60">
             <Compass className="h-4 w-4 text-secondary" />
