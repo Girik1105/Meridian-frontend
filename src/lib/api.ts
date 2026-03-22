@@ -147,3 +147,31 @@ export async function streamChat(
     reader.releaseLock();
   }
 }
+
+// --- Career Paths ---
+
+export async function generateCareerPaths() {
+  const res = await apiFetch("/career-paths/generate/", {
+    method: "POST",
+  });
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({}));
+    throw new Error(err.detail || "Failed to generate career paths");
+  }
+  return res.json();
+}
+
+export async function getCareerPaths(sortBy?: string) {
+  const query = sortBy ? `?sort_by=${sortBy}` : "";
+  const res = await apiFetch(`/career-paths/${query}`);
+  if (!res.ok) throw new Error("Failed to fetch career paths");
+  return res.json();
+}
+
+export async function selectCareerPath(pathId: string) {
+  const res = await apiFetch(`/career-paths/${pathId}/select/`, {
+    method: "POST",
+  });
+  if (!res.ok) throw new Error("Failed to select career path");
+  return res.json();
+}
