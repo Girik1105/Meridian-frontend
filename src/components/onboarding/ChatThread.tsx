@@ -16,24 +16,21 @@ interface ChatThreadProps {
 }
 
 export default function ChatThread({ messages, isStreaming }: ChatThreadProps) {
+  const containerRef = useRef<HTMLDivElement>(null);
   const bottomRef = useRef<HTMLDivElement>(null);
 
-  // Scroll on new message (user sends or new assistant message appears)
-  useEffect(() => {
-    bottomRef.current?.scrollIntoView({ behavior: "smooth" });
-  }, [messages.length]);
+  const lastMessageContent = messages[messages.length - 1]?.content;
 
-  // Scroll periodically during streaming
+  // Scroll to bottom whenever messages change (new message or streaming content update)
   useEffect(() => {
-    if (!isStreaming) return;
-    const interval = setInterval(() => {
-      bottomRef.current?.scrollIntoView({ behavior: "smooth" });
-    }, 250);
-    return () => clearInterval(interval);
-  }, [isStreaming]);
+    const el = containerRef.current;
+    if (el) {
+      el.scrollTop = el.scrollHeight;
+    }
+  }, [messages.length, lastMessageContent]);
 
   return (
-    <div className="flex-1 overflow-y-auto min-h-0 px-3 md:px-6 py-3 space-y-3">
+    <div ref={containerRef} className="flex-1 overflow-y-auto min-h-0 px-3 md:px-6 py-3 space-y-3">
       {messages.map((msg, i) => {
         // Skip empty assistant placeholder when streaming (the dots indicator handles it)
         if (isStreaming && i === messages.length - 1 && msg.role === "assistant" && msg.content === "") {
