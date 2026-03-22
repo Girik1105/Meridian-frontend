@@ -67,6 +67,14 @@ export function Navbar() {
           ))}
           <a
             href="/login"
+            className={`font-heading text-sm font-medium transition-colors ${
+              scrolled ? "text-charcoal hover:text-secondary" : "text-white/80 hover:text-white"
+            }`}
+          >
+            Log in
+          </a>
+          <a
+            href="/register"
             className={`inline-flex items-center justify-center rounded-lg px-5 py-2.5 font-heading text-sm font-medium transition-all min-h-[44px] ${
               scrolled
                 ? "bg-secondary text-white hover:bg-secondary/90"
@@ -116,6 +124,17 @@ export function Navbar() {
             ))}
             <a
               href="/login"
+              onClick={() => setMobileOpen(false)}
+              className={`font-heading text-base font-medium px-3 py-3 rounded-lg transition-colors min-h-[44px] flex items-center ${
+                scrolled
+                  ? "text-charcoal hover:text-secondary hover:bg-cloud"
+                  : "text-white/80 hover:text-white hover:bg-white/10"
+              }`}
+            >
+              Log in
+            </a>
+            <a
+              href="/register"
               onClick={() => setMobileOpen(false)}
               className="mt-2 inline-flex items-center justify-center rounded-lg bg-secondary px-5 py-3 font-heading text-base font-medium text-white hover:bg-secondary/90 transition-colors min-h-[44px]"
             >

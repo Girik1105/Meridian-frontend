@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { useAuth } from "@/hooks/useAuth";
@@ -19,6 +19,7 @@ import {
   Target,
   Clock,
   Calendar,
+  ChevronDown,
 } from "lucide-react";
 import { OnboardingFlow } from "@/components/onboarding";
 
@@ -35,6 +36,19 @@ export default function DashboardPage() {
   const handleOnboardingComplete = useCallback(() => {
     refetch();
   }, [refetch]);
+
+  const [profileOpen, setProfileOpen] = useState(false);
+  const profileRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    function handleClickOutside(e: MouseEvent) {
+      if (profileRef.current && !profileRef.current.contains(e.target as Node)) {
+        setProfileOpen(false);
+      }
+    }
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, []);
 
   async function handleLogout() {
     await logout();
@@ -136,20 +150,42 @@ export default function DashboardPage() {
             <Compass className="h-6 w-6 text-secondary" />
             Meridian
           </Link>
-          <div className="flex items-center gap-3 border-l border-silver/50 pl-4">
-            <div className="w-8 h-8 rounded-full bg-primary text-white flex items-center justify-center text-sm font-heading font-bold">
-              {user.username[0].toUpperCase()}
-            </div>
-            <span className="text-sm text-charcoal font-body hidden sm:inline">
-              {user.username}
-            </span>
+          <div className="relative" ref={profileRef}>
             <button
-              onClick={handleLogout}
-              className="inline-flex items-center gap-1.5 text-sm text-slate hover:text-ink font-heading font-medium transition-colors"
+              onClick={() => setProfileOpen((o) => !o)}
+              className="flex items-center gap-2 rounded-xl px-2 py-1.5 hover:bg-cloud transition-colors"
             >
-              <LogOut className="h-4 w-4" />
-              <span className="hidden sm:inline">Sign out</span>
+              <div className="w-8 h-8 rounded-full bg-primary text-white flex items-center justify-center text-sm font-heading font-bold">
+                {user.username[0].toUpperCase()}
+              </div>
+              <span className="text-sm text-charcoal font-body hidden sm:inline">
+                {user.username}
+              </span>
+              <ChevronDown className={`h-4 w-4 text-slate transition-transform ${profileOpen ? "rotate-180" : ""}`} />
             </button>
+
+            {profileOpen && (
+              <div className="absolute right-0 mt-2 w-48 bg-white rounded-xl border border-silver/50 shadow-lg py-1 z-50 animate-fade-in-up">
+                <div className="px-4 py-2.5 border-b border-silver/50">
+                  <p className="text-sm font-heading font-semibold text-ink truncate">
+                    {user.username}
+                  </p>
+                  <p className="text-xs font-body text-slate truncate">
+                    {user.email}
+                  </p>
+                </div>
+                <button
+                  onClick={() => {
+                    setProfileOpen(false);
+                    handleLogout();
+                  }}
+                  className="w-full flex items-center gap-2 px-4 py-2.5 text-sm font-heading font-medium text-slate hover:text-ink hover:bg-cloud transition-colors"
+                >
+                  <LogOut className="h-4 w-4" />
+                  Sign out
+                </button>
+              </div>
+            )}
           </div>
         </div>
       </header>
