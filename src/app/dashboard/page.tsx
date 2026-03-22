@@ -94,7 +94,7 @@ export default function DashboardPage() {
   ];
 
   return (
-    <div className="min-h-screen bg-snow flex flex-col">
+    <div className="h-screen bg-snow flex flex-col overflow-hidden">
       <header className="bg-white border-b border-silver/50 flex-shrink-0">
         <div className="mx-auto max-w-6xl flex items-center justify-between px-4 py-3 md:px-8">
           <div className="flex items-center gap-2 font-heading font-bold text-lg text-primary">
@@ -122,7 +122,7 @@ export default function DashboardPage() {
           onComplete={handleOnboardingComplete}
         />
       ) : (
-        <main className="mx-auto max-w-6xl w-full px-4 py-12 md:px-8">
+        <main className="mx-auto max-w-6xl w-full px-4 py-12 md:px-8 flex-1 overflow-y-auto">
           <div className="mb-10">
             <h1 className="font-heading text-2xl font-bold text-ink">
               Welcome back, {user.username}

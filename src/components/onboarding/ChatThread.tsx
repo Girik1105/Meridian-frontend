@@ -17,23 +17,36 @@ interface ChatThreadProps {
 
 export default function ChatThread({ messages, isStreaming }: ChatThreadProps) {
   const bottomRef = useRef<HTMLDivElement>(null);
+  const lastScrollRef = useRef(0);
+
+  const lastContent = messages[messages.length - 1]?.content;
 
   useEffect(() => {
-    bottomRef.current?.scrollIntoView({ behavior: "smooth" });
-  }, [messages]);
+    const now = Date.now();
+    if (now - lastScrollRef.current > 200) {
+      bottomRef.current?.scrollIntoView({ behavior: "smooth" });
+      lastScrollRef.current = now;
+    }
+  }, [lastContent, messages.length]);
 
   return (
-    <div className="flex-1 overflow-y-auto px-4 py-6 space-y-4">
-      {messages.map((msg, i) => (
-        <ChatMessage
-          key={msg.id ?? i}
-          role={msg.role}
-          content={msg.content}
-          animate={i >= messages.length - 2}
-        />
-      ))}
+    <div className="flex-1 overflow-y-auto min-h-0 px-3 md:px-6 py-3 space-y-3">
+      {messages.map((msg, i) => {
+        // Skip empty assistant placeholder when streaming (the dots indicator handles it)
+        if (isStreaming && i === messages.length - 1 && msg.role === "assistant" && msg.content === "") {
+          return null;
+        }
+        return (
+          <ChatMessage
+            key={msg.id ?? i}
+            role={msg.role}
+            content={msg.content}
+            animate={i >= messages.length - 2}
+          />
+        );
+      })}
 
-      {isStreaming && messages[messages.length - 1]?.content === "" && (
+      {isStreaming && (
         <div className="flex gap-3 animate-fade-in-up">
           <div className="flex-shrink-0 w-8 h-8 rounded-full bg-primary-light flex items-center justify-center">
             <Loader2 className="h-4 w-4 text-secondary animate-spin" />

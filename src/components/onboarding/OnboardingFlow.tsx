@@ -7,7 +7,7 @@ import ChatThread from "./ChatThread";
 import ChatInput from "./ChatInput";
 import ProfileProgress from "./ProfileProgress";
 import CompletionScreen from "./CompletionScreen";
-import WidgetSelector from "./widgets/WidgetSelector";
+import WidgetSelector, { type WidgetSpec } from "./widgets/WidgetSelector";
 
 interface OnboardingFlowProps {
   username: string;
@@ -20,7 +20,8 @@ export default function OnboardingFlow({ username, onComplete }: OnboardingFlowP
   const { messages, isStreaming, doneData, sendMessage } = useChat();
   const [phase, setPhase] = useState<Phase>("welcome");
   const [profileData, setProfileData] = useState<Record<string, unknown>>({});
-  const [dismissedAtCount, setDismissedAtCount] = useState(0);
+  const [currentWidget, setCurrentWidget] = useState<WidgetSpec | null>(null);
+  const [widgetDismissed, setWidgetDismissed] = useState(false);
 
   // Track previous doneData via useState (React-sanctioned derived state pattern)
   const [prevDoneData, setPrevDoneData] = useState(doneData);
@@ -32,16 +33,11 @@ export default function OnboardingFlow({ username, onComplete }: OnboardingFlowP
     if (doneData?.onboarding_completed === true && phase !== "complete") {
       setPhase("complete");
     }
+    setCurrentWidget((doneData?.widget as WidgetSpec) ?? null);
+    setWidgetDismissed(false);
   }
 
-  // Widget shows when: not streaming, last message is assistant, and messages have changed since dismissal
-  const showWidget =
-    !isStreaming &&
-    messages.length > 0 &&
-    messages[messages.length - 1].role === "assistant" &&
-    messages.length !== dismissedAtCount;
-
-  const lastAssistantMessage = showWidget ? messages[messages.length - 1].content : "";
+  const showWidget = !isStreaming && currentWidget !== null && !widgetDismissed;
 
   const handleBegin = useCallback(() => {
     setPhase("conversation");
@@ -50,11 +46,16 @@ export default function OnboardingFlow({ username, onComplete }: OnboardingFlowP
 
   const handleSend = useCallback(
     (text: string) => {
-      setDismissedAtCount(messages.length);
+      setCurrentWidget(null);
+      setWidgetDismissed(false);
       sendMessage(text, "onboarding");
     },
-    [sendMessage, messages.length]
+    [sendMessage]
   );
+
+  const handleWidgetDismiss = useCallback(() => {
+    setWidgetDismissed(true);
+  }, []);
 
   // Phase 1: Welcome
   if (phase === "welcome") {
@@ -104,29 +105,30 @@ export default function OnboardingFlow({ username, onComplete }: OnboardingFlowP
 
   // Phase 2: Conversation
   return (
-    <div className="flex-1 flex flex-col md:flex-row overflow-hidden">
-      {/* Chat area */}
-      <div className="flex-1 flex flex-col min-h-0">
-        <ChatThread messages={messages} isStreaming={isStreaming} />
-
-        {/* Widget area */}
-        {showWidget && lastAssistantMessage && (
-          <WidgetSelector
-            lastAssistantMessage={lastAssistantMessage}
-            onSend={handleSend}
-          />
-        )}
-
-        <ChatInput
-          onSend={handleSend}
-          disabled={isStreaming}
-          placeholder="Type your response..."
-        />
+    <div className="flex-1 flex flex-col overflow-hidden">
+      {/* Profile progress — horizontal top bar */}
+      <div className="flex-shrink-0">
+        <ProfileProgress profileData={profileData} />
       </div>
 
-      {/* Profile progress sidebar */}
-      <div className="md:w-80 md:border-l border-t md:border-t-0 border-silver/50 bg-snow p-4 md:overflow-y-auto">
-        <ProfileProgress profileData={profileData} />
+      {/* Chat thread */}
+      <ChatThread messages={messages} isStreaming={isStreaming} />
+
+      {/* Widget or chat input */}
+      <div className="flex-shrink-0">
+        {showWidget ? (
+          <WidgetSelector
+            widgetSpec={currentWidget!}
+            onSend={handleSend}
+            onDismiss={handleWidgetDismiss}
+          />
+        ) : (
+          <ChatInput
+            onSend={handleSend}
+            disabled={isStreaming}
+            placeholder="Type your response..."
+          />
+        )}
       </div>
     </div>
   );

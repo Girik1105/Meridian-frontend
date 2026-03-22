@@ -4,168 +4,129 @@ import { type ReactNode } from "react";
 import SliderWidget from "./SliderWidget";
 import MultiSelectWidget from "./MultiSelectWidget";
 import SingleSelectWidget from "./SingleSelectWidget";
+import FreeTextWidget from "./FreeTextWidget";
+import CompositeWidget from "./CompositeWidget";
 
-interface WidgetSelectorProps {
-  lastAssistantMessage: string;
-  onSend: (text: string) => void;
+export interface WidgetSpec {
+  type: "slider" | "single_select" | "multi_select" | "free_text" | "composite";
+  label: string;
+  field?: string;
+  min?: number;
+  max?: number;
+  default?: number;
+  min_label?: string;
+  max_label?: string;
+  step?: number;
+  suffix?: string;
+  options?: Array<string | { label: string; description?: string }>;
+  min_selections?: number;
+  max_selections?: number;
+  placeholder?: string;
+  fields?: WidgetSpec[];
 }
 
-const INTEREST_OPTIONS = [
-  "Technology", "Healthcare", "Education", "Business", "Design",
-  "Science", "Arts", "Engineering", "Finance", "Social Work",
-  "Media", "Environment", "Law", "Marketing",
-];
+interface WidgetSelectorProps {
+  widgetSpec: WidgetSpec;
+  onSend: (text: string) => void;
+  onDismiss: () => void;
+}
 
-const DEAL_BREAKER_OPTIONS = [
-  "Long hours", "Low pay", "No remote work", "High stress",
-  "Requires relocation", "Slow growth", "Repetitive tasks",
-  "Extensive travel", "No creativity", "Rigid hierarchy",
-];
+export default function WidgetSelector({ widgetSpec, onSend, onDismiss }: WidgetSelectorProps) {
+  if (!widgetSpec) return null;
 
-const EDUCATION_OPTIONS = [
-  { label: "High school", description: "High school diploma or equivalent" },
-  { label: "Some college", description: "Started but didn't finish a degree" },
-  { label: "Associate's degree", description: "2-year degree" },
-  { label: "Bachelor's degree", description: "4-year degree" },
-  { label: "Master's degree", description: "Graduate-level degree" },
-  { label: "Doctoral degree", description: "PhD or equivalent" },
-  { label: "Self-taught / Bootcamp", description: "Non-traditional education" },
-];
+  return (
+    <div className="px-3 pb-2 animate-fade-in-up">
+      {renderWidget(widgetSpec, onSend)}
+      <button
+        onClick={onDismiss}
+        className="mt-2 w-full text-center text-xs text-slate hover:text-charcoal font-body transition-colors py-1"
+      >
+        Prefer to type your own answer?
+      </button>
+    </div>
+  );
+}
 
-const BUDGET_OPTIONS = [
-  { label: "Free only", description: "Only free resources and courses" },
-  { label: "Low budget", description: "Up to $50/month for learning" },
-  { label: "Flexible", description: "Willing to invest in quality education" },
-];
+function renderWidget(spec: WidgetSpec, onSend: (text: string) => void): ReactNode {
+  switch (spec.type) {
+    case "slider":
+      return (
+        <SliderWidget
+          label={spec.label}
+          min={spec.min ?? 1}
+          max={spec.max ?? 10}
+          defaultValue={spec.default}
+          minLabel={spec.min_label}
+          maxLabel={spec.max_label}
+          suffix={spec.suffix}
+          messageTemplate={(v) => {
+            const field = spec.field || spec.label.toLowerCase();
+            if (field.includes("confidence")) return `I'd rate my confidence at about ${v} out of ${spec.max ?? 10}`;
+            if (field.includes("hours")) return `I can dedicate about ${v} hours per week`;
+            if (field.includes("timeline")) return `I'm thinking about ${v} months`;
+            return `For "${spec.label}", I'd say ${v}${spec.suffix || ""}`;
+          }}
+          onSend={onSend}
+        />
+      );
 
-const LEARNING_STYLE_OPTIONS = [
-  { label: "Very hands-on", description: "I learn by doing projects and building things" },
-  { label: "Balanced", description: "Mix of reading, videos, and practice" },
-  { label: "Mostly reading/videos", description: "I prefer absorbing material first, then applying" },
-];
-
-type WidgetMatch = {
-  keywords: string[];
-  render: (onSend: (text: string) => void) => ReactNode;
-};
-
-const WIDGET_RULES: WidgetMatch[] = [
-  {
-    keywords: ["confidence", "scale of", "1 to 10", "one to ten", "rate yourself"],
-    render: (onSend) => (
-      <SliderWidget
-        label="How confident are you about your career direction?"
-        min={1}
-        max={10}
-        defaultValue={5}
-        minLabel="Not sure at all"
-        maxLabel="Very confident"
-        messageTemplate={(v) => `I'd rate my confidence at about ${v} out of 10`}
-        onSend={onSend}
-      />
-    ),
-  },
-  {
-    keywords: ["interests", "passionate", "curious about", "excited about", "drawn to"],
-    render: (onSend) => (
-      <MultiSelectWidget
-        label="Select the areas that interest you"
-        options={INTEREST_OPTIONS}
-        messageTemplate={(s) =>
-          `I'm interested in ${s.slice(0, -1).join(", ")}${s.length > 1 ? " and " : ""}${s[s.length - 1]}`
-        }
-        onSend={onSend}
-      />
-    ),
-  },
-  {
-    keywords: ["education", "degree", "studied", "academic background", "school"],
-    render: (onSend) => (
-      <SingleSelectWidget
-        label="What's your education level?"
-        options={EDUCATION_OPTIONS}
-        messageTemplate={(s) => `My education level is ${s.toLowerCase()}`}
-        onSend={onSend}
-      />
-    ),
-  },
-  {
-    keywords: ["hours", "time per week", "time each week", "dedicate per week", "spare time"],
-    render: (onSend) => (
-      <SliderWidget
-        label="How many hours per week can you dedicate?"
-        min={1}
-        max={40}
-        defaultValue={10}
-        suffix=" hrs"
-        messageTemplate={(v) => `I can dedicate about ${v} hours per week to learning`}
-        onSend={onSend}
-      />
-    ),
-  },
-  {
-    keywords: ["budget", "spend", "invest in learning", "afford"],
-    render: (onSend) => (
-      <SingleSelectWidget
-        label="What's your learning budget?"
-        options={BUDGET_OPTIONS}
-        messageTemplate={(s) => `My budget preference is ${s.toLowerCase()}`}
-        onSend={onSend}
-      />
-    ),
-  },
-  {
-    keywords: ["timeline", "months", "how long", "how soon", "timeframe"],
-    render: (onSend) => (
-      <SliderWidget
-        label="What's your ideal timeline?"
-        min={1}
-        max={24}
-        defaultValue={6}
-        suffix=" months"
-        minLabel="1 month"
-        maxLabel="2 years"
-        messageTemplate={(v) => `I'm thinking a timeline of about ${v} months`}
-        onSend={onSend}
-      />
-    ),
-  },
-  {
-    keywords: ["deal breaker", "dealbreaker", "absolutely not", "avoid", "non-negotiable"],
-    render: (onSend) => (
-      <MultiSelectWidget
-        label="Any deal breakers?"
-        options={DEAL_BREAKER_OPTIONS}
-        messageTemplate={(s) =>
-          `My deal breakers would be ${s.slice(0, -1).join(", ")}${s.length > 1 ? " and " : ""}${s[s.length - 1].toLowerCase()}`
-        }
-        onSend={onSend}
-      />
-    ),
-  },
-  {
-    keywords: ["learning style", "hands-on", "learn best", "prefer to learn", "reading or doing"],
-    render: (onSend) => (
-      <SingleSelectWidget
-        label="How do you prefer to learn?"
-        options={LEARNING_STYLE_OPTIONS}
-        messageTemplate={(s) => `My learning style is ${s.toLowerCase()}`}
-        onSend={onSend}
-      />
-    ),
-  },
-];
-
-export default function WidgetSelector({ lastAssistantMessage, onSend }: WidgetSelectorProps) {
-  if (!lastAssistantMessage) return null;
-
-  const lower = lastAssistantMessage.toLowerCase();
-
-  for (const rule of WIDGET_RULES) {
-    if (rule.keywords.some((kw) => lower.includes(kw))) {
-      return <div className="px-4 pb-2">{rule.render(onSend)}</div>;
+    case "single_select": {
+      const opts = (spec.options ?? []).map((o) =>
+        typeof o === "string" ? { label: o } : o
+      );
+      return (
+        <SingleSelectWidget
+          label={spec.label}
+          options={opts}
+          messageTemplate={(s) => {
+            const field = spec.field || "";
+            if (field.includes("education")) return `My education level is ${s.toLowerCase()}`;
+            if (field.includes("budget")) return `My budget preference is ${s.toLowerCase()}`;
+            if (field.includes("learning")) return `My learning style is ${s.toLowerCase()}`;
+            return s;
+          }}
+          onSend={onSend}
+        />
+      );
     }
-  }
 
-  return null;
+    case "multi_select": {
+      const strOpts = (spec.options ?? []).map((o) =>
+        typeof o === "string" ? o : o.label
+      );
+      return (
+        <MultiSelectWidget
+          label={spec.label}
+          options={strOpts}
+          messageTemplate={(selected) => {
+            if (selected.length === 1) return `I'm most interested in ${selected[0]}`;
+            const last = selected[selected.length - 1];
+            const rest = selected.slice(0, -1).join(", ");
+            return `I'm interested in ${rest} and ${last}`;
+          }}
+          onSend={onSend}
+        />
+      );
+    }
+
+    case "free_text":
+      return (
+        <FreeTextWidget
+          placeholder={spec.placeholder || `Share your thoughts on: ${spec.label}`}
+          onSend={onSend}
+        />
+      );
+
+    case "composite":
+      return (
+        <CompositeWidget
+          label={spec.label}
+          fields={spec.fields ?? []}
+          onSend={onSend}
+        />
+      );
+
+    default:
+      return null;
+  }
 }
