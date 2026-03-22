@@ -27,8 +27,9 @@ export default function CareerPathsView() {
     async function loadOrGenerate() {
       try {
         // Try fetching existing paths first
-        const existing = await getCareerPaths();
+        const result = await getCareerPaths();
         if (cancelled) return;
+        const existing = result.paths || [];
         if (existing.length > 0) {
           setPaths(existing);
           setPhase("browsing");
@@ -37,7 +38,7 @@ export default function CareerPathsView() {
         // No existing paths — generate new ones
         const data = await generateCareerPaths();
         if (cancelled) return;
-        setPaths(data);
+        setPaths(Array.isArray(data) ? data : (data.paths || []));
         setPhase("browsing");
       } catch (err) {
         if (cancelled) return;

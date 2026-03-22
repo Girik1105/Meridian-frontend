@@ -257,8 +257,11 @@ export async function generateCareerPaths() {
 async function pollCareerPathsReady(maxAttempts = 30): Promise<unknown> {
   for (let i = 0; i < maxAttempts; i++) {
     await new Promise((r) => setTimeout(r, 2000));
-    const paths = await getCareerPaths();
-    if (Array.isArray(paths) && paths.length > 0) return paths;
+    const result = await getCareerPaths();
+    if (result.paths && result.paths.length > 0) return result.paths;
+    if (result.generation_status === "none" && i > 5) {
+      throw new Error("Career path generation failed. Please try again.");
+    }
   }
   throw new Error("Career path generation timed out. Please try again.");
 }
@@ -267,7 +270,13 @@ export async function getCareerPaths(sortBy?: string) {
   const query = sortBy ? `?sort_by=${sortBy}` : "";
   const res = await apiFetch(`/career-paths/${query}`);
   if (!res.ok) throw new Error("Failed to fetch career paths");
-  return res.json();
+  const data = await res.json();
+  // Backend now wraps response in { generation_status, paths }
+  if (data && typeof data === "object" && "paths" in data) {
+    return data;
+  }
+  // Fallback for backward compatibility
+  return { generation_status: "ready", paths: data };
 }
 
 export async function selectCareerPath(pathId: string) {
@@ -357,5 +366,39 @@ export async function completeTaster(id: string) {
 export async function getTasterAssessment(id: string) {
   const res = await apiFetch(`/tasters/${id}/assessment/`);
   if (!res.ok) throw new Error("Failed to fetch assessment");
+  return res.json();
+}
+
+export async function retryTaster(id: string) {
+  const res = await apiFetch(`/tasters/${id}/retry/`, { method: "POST" });
+  const data = await res.json();
+
+  if (res.status === 202 && data.status === "generating") {
+    return pollTasterReady(data.id);
+  }
+
+  if (!res.ok) {
+    throw new Error(data.detail || "Failed to retry taster generation");
+  }
+  return data;
+}
+
+// --- Session State ---
+
+export interface SessionState {
+  journey_stage: string;
+  onboarding_completed: boolean;
+  active_conversation: { id: string; conversation_type: string; title: string } | null;
+  career_paths_status: "none" | "generating" | "ready";
+  career_paths_count: number;
+  selected_career_path: { id: string; title: string } | null;
+  pending_tasters: { id: string; skill_name: string; status: string; created_at: string }[];
+  active_taster: { id: string; skill_name: string; started_at: string } | null;
+  failed_tasters: { id: string; skill_name: string; status: string }[];
+}
+
+export async function getSessionState(): Promise<SessionState> {
+  const res = await apiFetch("/session-state/");
+  if (!res.ok) throw new Error("Failed to fetch session state");
   return res.json();
 }

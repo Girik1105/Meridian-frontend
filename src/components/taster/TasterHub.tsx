@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import {
   FlaskConical,
@@ -14,10 +14,12 @@ import {
   Map,
   Loader2,
   Brain,
+  RefreshCw,
+  AlertTriangle,
 } from "lucide-react";
 import type { CareerPath } from "@/types/career";
 import type { SkillTaster } from "@/types/taster";
-import { getCareerPaths, getTasters, generateTaster } from "@/lib/api";
+import { getCareerPaths, getTasters, generateTaster, retryTaster } from "@/lib/api";
 
 export default function TasterHub() {
   const router = useRouter();
@@ -25,14 +27,27 @@ export default function TasterHub() {
   const [tasters, setTasters] = useState<SkillTaster[]>([]);
   const [loading, setLoading] = useState(true);
   const [generatingSkill, setGeneratingSkill] = useState<string | null>(null);
+  const [retryingSkill, setRetryingSkill] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const pollRef = useRef<ReturnType<typeof setInterval> | null>(null);
+
+  const refreshTasters = useCallback(async (pathId: string) => {
+    try {
+      const existing = await getTasters(pathId);
+      setTasters(existing);
+      return existing;
+    } catch {
+      return null;
+    }
+  }, []);
 
   useEffect(() => {
     let cancelled = false;
     async function load() {
       try {
-        const paths: CareerPath[] = await getCareerPaths();
-        const selected = paths.find((p) => p.is_selected) ?? null;
+        const result = await getCareerPaths();
+        const paths = result.paths || [];
+        const selected = paths.find((p: CareerPath) => p.is_selected) ?? null;
         if (cancelled) return;
         setSelectedPath(selected);
 
@@ -53,6 +68,33 @@ export default function TasterHub() {
     };
   }, []);
 
+  // Poll for tasters that are still generating
+  useEffect(() => {
+    const hasGenerating = tasters.some((t) => t.status === "generating");
+    if (!hasGenerating || !selectedPath) {
+      if (pollRef.current) {
+        clearInterval(pollRef.current);
+        pollRef.current = null;
+      }
+      return;
+    }
+
+    pollRef.current = setInterval(async () => {
+      const updated = await refreshTasters(selectedPath.id);
+      if (updated && !updated.some((t: SkillTaster) => t.status === "generating")) {
+        if (pollRef.current) clearInterval(pollRef.current);
+        pollRef.current = null;
+      }
+    }, 3000);
+
+    return () => {
+      if (pollRef.current) {
+        clearInterval(pollRef.current);
+        pollRef.current = null;
+      }
+    };
+  }, [tasters, selectedPath, refreshTasters]);
+
   async function handleGenerate(skillName: string) {
     if (!selectedPath) return;
     setGeneratingSkill(skillName);
@@ -63,6 +105,21 @@ export default function TasterHub() {
     } catch (err) {
       setError(err instanceof Error ? err.message : "Generation failed");
       setGeneratingSkill(null);
+      // Refresh list to pick up any status changes
+      if (selectedPath) refreshTasters(selectedPath.id);
+    }
+  }
+
+  async function handleRetry(taster: SkillTaster) {
+    setRetryingSkill(taster.skill_name);
+    setError(null);
+    try {
+      const updated = await retryTaster(taster.id);
+      router.push(`/tasters/${updated.id}`);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Retry failed");
+      setRetryingSkill(null);
+      if (selectedPath) refreshTasters(selectedPath.id);
     }
   }
 
@@ -108,7 +165,7 @@ export default function TasterHub() {
   const tastersBySkill: Record<string, SkillTaster> = {};
   tasters.forEach((t) => { tastersBySkill[t.skill_name] = t; });
 
-  const STATUS_CONFIG = {
+  const STATUS_CONFIG: Record<string, { label: string; color: string; bg: string }> = {
     not_started: { label: "Not Started", color: "text-slate", bg: "bg-cloud" },
     in_progress: {
       label: "In Progress",
@@ -119,6 +176,16 @@ export default function TasterHub() {
       label: "Completed",
       color: "text-success",
       bg: "bg-success-light",
+    },
+    generating: {
+      label: "Generating...",
+      color: "text-secondary",
+      bg: "bg-secondary-light",
+    },
+    generation_failed: {
+      label: "Failed",
+      color: "text-accent",
+      bg: "bg-accent-light",
     },
   };
 
@@ -227,7 +294,9 @@ export default function TasterHub() {
         <div className="flex flex-col">
           {skills.map((skill, i) => {
             const taster = tastersBySkill[skill];
-            const isGenerating = generatingSkill === skill;
+            const isGenerating = generatingSkill === skill || taster?.status === "generating";
+            const isFailed = taster?.status === "generation_failed";
+            const isRetrying = retryingSkill === skill;
             const isLast = i === skills.length - 1;
 
             const isCompleted = taster?.status === "completed";
@@ -238,33 +307,38 @@ export default function TasterHub() {
               ? "bg-success text-white"
               : isInProgress
                 ? "bg-secondary text-white"
-                : "bg-cloud text-slate";
-
-            // Connector line style
-            const connectorClass = isCompleted
-              ? "bg-success"
-              : "border-l-2 border-dashed border-silver bg-transparent";
+                : isFailed
+                  ? "bg-accent/20 text-accent"
+                  : isGenerating
+                    ? "bg-secondary-light text-secondary"
+                    : "bg-cloud text-slate";
 
             // Action text & icon
             let actionText = "Generate Taster";
             let ActionIcon = Sparkles;
-            if (taster) {
+            if (isFailed) {
+              actionText = "Retry";
+              ActionIcon = RefreshCw;
+            } else if (taster && !isGenerating) {
               if (isCompleted) {
                 actionText = "View Assessment";
                 ActionIcon = ArrowRight;
               } else if (isInProgress) {
                 actionText = "Continue";
                 ActionIcon = ArrowRight;
-              } else {
+              } else if (taster.status === "not_started") {
                 actionText = "Start Taster";
                 ActionIcon = ArrowRight;
               }
             }
 
             const handleClick = () => {
-              if (taster) {
+              if (isGenerating || isRetrying) return;
+              if (isFailed && taster) {
+                handleRetry(taster);
+              } else if (taster && taster.status !== "generating") {
                 router.push(`/tasters/${taster.id}`);
-              } else {
+              } else if (!taster) {
                 handleGenerate(skill);
               }
             };
@@ -286,6 +360,10 @@ export default function TasterHub() {
                       <Check className="h-4 w-4" />
                     ) : isInProgress ? (
                       <Play className="h-4 w-4" />
+                    ) : isGenerating ? (
+                      <Loader2 className="h-4 w-4 animate-spin" />
+                    ) : isFailed ? (
+                      <AlertTriangle className="h-4 w-4" />
                     ) : (
                       <span>{i + 1}</span>
                     )}
@@ -311,20 +389,28 @@ export default function TasterHub() {
                 {/* Right: skill card */}
                 <button
                   onClick={handleClick}
-                  disabled={!taster && (isGenerating || !!generatingSkill)}
+                  disabled={isGenerating || isRetrying || (!taster && !!generatingSkill)}
                   className={`flex-1 mb-3 bg-white rounded-2xl border p-4 text-left flex items-center gap-4 transition-all group ${
-                    taster
-                      ? "border-silver/50 shadow-sm hover:shadow-md hover:border-secondary/40"
-                      : "border-dashed border-silver hover:border-secondary/40 hover:shadow-sm"
+                    isFailed
+                      ? "border-accent/30 shadow-sm hover:shadow-md hover:border-accent/50"
+                      : taster
+                        ? "border-silver/50 shadow-sm hover:shadow-md hover:border-secondary/40"
+                        : "border-dashed border-silver hover:border-secondary/40 hover:shadow-sm"
                   } disabled:opacity-60 disabled:cursor-not-allowed`}
                 >
                   {/* Icon */}
                   <div
                     className={`w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0 ${
-                      taster ? "bg-secondary-light" : "bg-cloud"
+                      isFailed
+                        ? "bg-accent-light"
+                        : taster
+                          ? "bg-secondary-light"
+                          : "bg-cloud"
                     }`}
                   >
-                    {taster ? (
+                    {isFailed ? (
+                      <AlertTriangle className="h-5 w-5 text-accent" />
+                    ) : taster ? (
                       <FlaskConical className="h-5 w-5 text-secondary" />
                     ) : (
                       <Sparkles className="h-5 w-5 text-slate" />
@@ -343,10 +429,12 @@ export default function TasterHub() {
                         >
                           {isCompleted && <Check className="h-3 w-3" />}
                           {isInProgress && <Play className="h-3 w-3" />}
+                          {isGenerating && <Loader2 className="h-3 w-3 animate-spin" />}
+                          {isFailed && <AlertTriangle className="h-3 w-3" />}
                           {config.label}
                         </span>
                       )}
-                      {taster && (
+                      {taster && taster.taster_content?.estimated_minutes && (
                         <span className="flex items-center gap-1 text-xs font-heading text-slate">
                           <Clock className="h-3.5 w-3.5" />~
                           {taster.taster_content.estimated_minutes} min
@@ -357,13 +445,17 @@ export default function TasterHub() {
 
                   {/* Action */}
                   <div className="flex items-center gap-1 flex-shrink-0">
-                    {isGenerating ? (
+                    {isGenerating || isRetrying ? (
                       <div className="flex items-center gap-2 text-xs font-heading text-secondary">
                         <div className="h-3.5 w-3.5 border-2 border-secondary/30 border-t-secondary rounded-full animate-spin" />
-                        Generating...
+                        {isRetrying ? "Retrying..." : "Generating..."}
                       </div>
                     ) : (
-                      <span className="flex items-center gap-1 text-xs font-heading font-medium text-secondary group-hover:text-secondary/80 transition-colors">
+                      <span className={`flex items-center gap-1 text-xs font-heading font-medium transition-colors ${
+                        isFailed
+                          ? "text-accent group-hover:text-accent/80"
+                          : "text-secondary group-hover:text-secondary/80"
+                      }`}>
                         {actionText}
                         <ActionIcon className="h-3.5 w-3.5" />
                       </span>

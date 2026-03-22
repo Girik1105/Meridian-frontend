@@ -35,7 +35,7 @@ export interface SkillTaster {
   career_path: string | null;
   skill_name: string;
   taster_content: TasterContent;
-  status: "not_started" | "in_progress" | "completed";
+  status: "generating" | "not_started" | "in_progress" | "completed" | "generation_failed";
   started_at: string | null;
   completed_at: string | null;
   created_at: string;
