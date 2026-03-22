@@ -19,7 +19,14 @@ export function useChat() {
   const abortRef = useRef(false);
 
   const sendMessage = useCallback(
-    async (text: string, conversationType: string = "onboarding") => {
+    async (
+      text: string,
+      conversationType: string = "onboarding",
+      metadata?: Record<string, unknown>,
+      resetConversation?: boolean
+    ) => {
+      const activeConvId = resetConversation ? null : conversationId;
+
       setMessages((prev) => [...prev, { role: "user", content: text }]);
       setIsStreaming(true);
       setDoneData(null);
@@ -30,9 +37,12 @@ export function useChat() {
         const sendRes = await apiFetch("/chat/send/", {
           method: "POST",
           body: JSON.stringify({
-            conversation_id: conversationId,
+            conversation_id: activeConvId,
             conversation_type: conversationType,
             message: text,
+            ...(metadata && Object.keys(metadata).length > 0
+              ? { metadata }
+              : {}),
           }),
         });
 
@@ -96,5 +106,11 @@ export function useChat() {
     [conversationId]
   );
 
-  return { messages, isStreaming, conversationId, doneData, sendMessage };
+  const clearMessages = useCallback(() => {
+    setMessages([]);
+    setConversationId(null);
+    setDoneData(null);
+  }, []);
+
+  return { messages, isStreaming, conversationId, doneData, sendMessage, clearMessages };
 }

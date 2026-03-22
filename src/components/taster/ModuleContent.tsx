@@ -1,8 +1,45 @@
 "use client";
 
 import { useState } from "react";
+import { type ReactElement } from "react";
 import { Check, BookOpen, Code, MessageSquare } from "lucide-react";
 import type { TasterModule, TasterResponse } from "@/types/taster";
+
+function renderMarkdownLite(text: string) {
+  const parts: (string | ReactElement)[] = [];
+  const regex = /(\*\*(.+?)\*\*|\*(.+?)\*)/g;
+  let lastIndex = 0;
+  let match: RegExpExecArray | null;
+  let key = 0;
+
+  while ((match = regex.exec(text)) !== null) {
+    if (match.index > lastIndex) {
+      parts.push(text.slice(lastIndex, match.index));
+    }
+    if (match[2]) {
+      parts.push(<strong key={key++} className="font-heading font-semibold">{match[2]}</strong>);
+    } else if (match[3]) {
+      parts.push(<em key={key++}>{match[3]}</em>);
+    }
+    lastIndex = regex.lastIndex;
+  }
+
+  if (lastIndex < text.length) {
+    parts.push(text.slice(lastIndex));
+  }
+
+  return parts;
+}
+
+function renderContent(content: string) {
+  const lines = content.split("\n");
+  return lines.map((line, i) => (
+    <span key={i}>
+      {renderMarkdownLite(line)}
+      {i < lines.length - 1 && <br />}
+    </span>
+  ));
+}
 
 interface ModuleContentProps {
   module: TasterModule;
@@ -58,8 +95,8 @@ export default function ModuleContent({
 
       {/* Module content */}
       <div className="bg-white rounded-2xl border border-silver/50 p-5 shadow-sm mb-4">
-        <div className="font-body text-sm text-charcoal leading-relaxed whitespace-pre-wrap">
-          {module.content}
+        <div className="font-body text-sm text-charcoal leading-relaxed">
+          {renderContent(module.content)}
         </div>
       </div>
 

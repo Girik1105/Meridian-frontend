@@ -14,10 +14,12 @@ import {
   Menu,
   X,
   Loader2,
+  HelpCircle,
 } from "lucide-react";
 import type { SkillTasterDetail, TasterResponse } from "@/types/taster";
 import { startTaster, respondToModule, completeTaster } from "@/lib/api";
 import ModuleContent from "./ModuleContent";
+import TasterHelpPanel from "./TasterHelpPanel";
 
 interface TasterPlayerProps {
   taster: SkillTasterDetail;
@@ -43,6 +45,7 @@ export default function TasterPlayer({ taster, onComplete }: TasterPlayerProps) 
   const [submitting, setSubmitting] = useState(false);
   const [completing, setCompleting] = useState(false);
   const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [helpOpen, setHelpOpen] = useState(false);
   const moduleStartRef = useRef(Date.now());
 
   const modules = taster.taster_content.modules;
@@ -57,9 +60,10 @@ export default function TasterPlayer({ taster, onComplete }: TasterPlayerProps) 
     }
   }, [taster.id, taster.status]);
 
-  // Reset timer on module change
+  // Reset timer and close help on module change
   useEffect(() => {
     moduleStartRef.current = Date.now();
+    setHelpOpen(false);
   }, [activeIndex]);
 
   const handleSubmitResponse = useCallback(
@@ -382,6 +386,17 @@ export default function TasterPlayer({ taster, onComplete }: TasterPlayerProps) 
               submitting={submitting}
             />
 
+            {/* Feeling stuck? */}
+            {!responses.has(activeModule.id) && (
+              <button
+                onClick={() => setHelpOpen(true)}
+                className="mt-4 flex items-center gap-2 px-4 py-2.5 rounded-xl border border-dashed border-secondary/40 text-sm font-heading font-medium text-secondary hover:bg-secondary-light hover:border-secondary/60 transition-all group"
+              >
+                <HelpCircle className="h-4 w-4 text-secondary group-hover:scale-110 transition-transform" />
+                Feeling stuck? Ask your AI tutor
+              </button>
+            )}
+
             {/* Prev/Next navigation */}
             <div className="flex justify-between mt-8">
               <button
@@ -414,6 +429,16 @@ export default function TasterPlayer({ taster, onComplete }: TasterPlayerProps) 
             </div>
           </div>
         </main>
+
+        {/* Help panel */}
+        <TasterHelpPanel
+          tasterId={taster.id}
+          moduleId={activeModule.id}
+          moduleName={activeModule.title}
+          skillName={taster.taster_content.skill_name}
+          isOpen={helpOpen}
+          onClose={() => setHelpOpen(false)}
+        />
       </div>
     </div>
   );
